@@ -5,12 +5,13 @@ project(kmbasic VERSION 0.1 LANGUAGES C)
 set(EXECUTABLE_OUTPUT_PATH ./${CMAKE_BUILD_TYPE})
 
 set(INCLUDE_FILES
-
+    common.h
+    lexer.h
 )
 
 set(SRC_FILES
     main.c
-
+    lexer.c
 )
 
 list(TRANSFORM INCLUDE_FILES PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/include/)
