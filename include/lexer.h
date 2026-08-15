@@ -67,4 +67,10 @@ typedef enum Token {
     TOKEN_LSEQ
 } Token;
 
+void open_file(const char* filename);
+void close_file();
+char get_char();
+
+extern char curchar;
+
 #endif
