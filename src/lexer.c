@@ -1,3 +1,4 @@
+#include "common.h"
 #include "lexer.h"
 
 #include <stddef.h>
@@ -12,6 +13,8 @@ static char* input_cursor;
 static size_t current_size;
 static FILE* input_file;
 static bool input_eof;
+static int file_line;
+static int file_col;
 
 char curchar;
 
@@ -20,6 +23,10 @@ struct DecTableRow {
     uint8_t cmd_then;
     uint8_t cmd_else;
 };
+
+Token token;
+
+static char temp[256];
 
 static const struct DecTableRow kw_table[169] = {
     {'A',  1, 9},
@@ -201,20 +208,23 @@ static void refill_buffer() {
     }
 }
 
-static void get_char() {
+static void next_char() {
     if (input_cursor >= input_buffer + current_size) {
         if (input_eof) return '\0';
         refill_buffer();
     }
     curchar = *input_cursor;
     input_cursor++;
+    file_col++;
 }
 
 void open_file(const char* filename) {
     input_file = fopen(filename, "r");
     input_eof = false;
+    file_line = 1;
+    file_col = 0;
     refill_buffer();
-    get_char();
+    next_char();
 }
 
 void close_file() {
@@ -237,5 +247,104 @@ Token check_keyword(const char* name) {
             }
             row = kw_table[row].cmd_else;
         }
+    }
+}
+
+void skip_spaces() {
+    while (curchar == ' ' || curchar == '\t') next_char();
+}
+
+void skip_newlines() {
+    while (curchar == '\n' || curchar == '\r' || curchar == ':') {
+        if (curchar == '\n') {
+            file_line++;
+            file_col = 1;
+        }
+        next_char();
+    }
+}
+
+void skip_comment() {
+    while (curchar != '\r' || curchar != '\n' || curchar != '\0')
+    {
+        next_char();
+    }
+}
+
+void next_token(char* buffer, KmInt value) {
+    skip_spaces();
+    if (curchar == '\'') {
+        skip_comment();
+    }
+    switch (curchar)
+    {
+    case '\0': return TOKEN_EOF;
+    case '\r':
+    case '\n':
+    case ':':
+        skip_newlines();
+        return TOKEN_NEWLINE;
+    case '(':
+        next_char();
+        return TOKEN_LPAREN;
+    case ')':
+        next_char();
+        return TOKEN_RPAREN;
+    case ',':
+        next_char();
+        return TOKEN_COMMA;
+    case ';':
+        next_char();
+        return TOKEN_SEMICOLON;
+    case '+':
+        next_char();
+        return TOKEN_PLUS;
+    case '-':
+        next_char();
+        return TOKEN_MINUS;
+    case '*':
+        next_char();
+        return TOKEN_MUL;
+    case '/':
+        next_char();
+        return TOKEN_DIV;
+    case '\\':
+        next_char();
+        return TOKEN_INTDIV;
+    case '^':
+        next_char();
+        return TOKEN_POWER;
+    case '&':
+        next_char();
+        return TOKEN_CONCAT;
+    case '=':
+        next_char();
+        return TOKEN_EQ;
+    case '<':
+        next_char();
+        if (curchar == '<') {
+            next_char();
+            return TOKEN_LSHIFT;
+        } else if (curchar == '=') {
+            next_char();
+            return TOKEN_LSEQ;
+        } else if (curchar == '>') {
+            next_char();
+            return TOKEN_NEQ;
+        }
+        return TOKEN_LS;
+    case '>':
+        next_char();
+        if (curchar == '>') {
+            next_char();
+            return TOKEN_RSHIFT;
+        } else if (curchar == '=') {
+            next_char();
+            return TOKEN_GTEQ;
+        }
+        return TOKEN_GT;
+
+    default:
+        break;
     }
 }

@@ -43,7 +43,13 @@ typedef enum Token {
     TOKEN_KW_WHILE,
     TOKEN_KW_XOR,
 
-    TOKEN_EOL,
+    TOKEN_NEWLINE,
+    TOKEN_EOF,
+
+    TOKEN_ID,
+    TOKEN_INTLIT,
+    TOKEN_FLOATLIT,
+    TOKEN_STRLIT,
 
     TOKEN_LPAREN,
     TOKEN_RPAREN,
