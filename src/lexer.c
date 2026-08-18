@@ -231,7 +231,7 @@ void close_file() {
     fclose(input_file);
 }
 
-Token check_keyword(const char* name) {
+TokenType check_keyword(const char* name) {
     int row = 0;
     const char* cur = name;
     while (1) {
@@ -271,78 +271,82 @@ void skip_comment() {
     }
 }
 
-void next_token(char* buffer, KmInt value) {
+static void set_token(TokenType token_type) {
+    token.token_type = token_type;
+    token.line = file_line;
+    token.col = file_col;
+}
+
+static void set_token_next(TokenType token_type) {
+    set_token(token_type);
+    next_char();
+}
+
+static void set_token_int(TokenType token_type, KmInt value) {
+    set_token(token_type);
+    token.int_value = value;
+}
+
+static void set_token_float(TokenType token_type, KmFloat value) {
+    set_token(token_type);
+    token.float_value = value;
+}
+
+static void set_token_len(TokenType token_type, size_t value) {
+    set_token(token_type);
+    token.length = value;
+}
+
+void next_token(char* buffer, size_t buffer_length) {
     skip_spaces();
     if (curchar == '\'') {
         skip_comment();
     }
+
     switch (curchar)
     {
-    case '\0': return TOKEN_EOF;
+    case '\0': set_token(TOKEN_EOF); break;
     case '\r':
     case '\n':
     case ':':
         skip_newlines();
-        return TOKEN_NEWLINE;
-    case '(':
-        next_char();
-        return TOKEN_LPAREN;
-    case ')':
-        next_char();
-        return TOKEN_RPAREN;
-    case ',':
-        next_char();
-        return TOKEN_COMMA;
-    case ';':
-        next_char();
-        return TOKEN_SEMICOLON;
-    case '+':
-        next_char();
-        return TOKEN_PLUS;
-    case '-':
-        next_char();
-        return TOKEN_MINUS;
-    case '*':
-        next_char();
-        return TOKEN_MUL;
-    case '/':
-        next_char();
-        return TOKEN_DIV;
-    case '\\':
-        next_char();
-        return TOKEN_INTDIV;
-    case '^':
-        next_char();
-        return TOKEN_POWER;
-    case '&':
-        next_char();
-        return TOKEN_CONCAT;
-    case '=':
-        next_char();
-        return TOKEN_EQ;
+        set_token(TOKEN_NEWLINE);
+        break;
+    case '(': set_token_next(TOKEN_LPAREN); break;
+    case ')': set_token_next(TOKEN_RPAREN); break;
+    case ',': set_token_next(TOKEN_COMMA); break;
+    case ';': set_token_next(TOKEN_SEMICOLON); break;
+    case '+': set_token_next(TOKEN_PLUS); break;
+    case '-': set_token_next(TOKEN_MINUS); break;
+    case '*': set_token_next(TOKEN_MUL); break;
+    case '/': set_token_next(TOKEN_DIV); break;
+    case '\\': set_token_next(TOKEN_INTDIV); break;
+    case '^': set_token_next(TOKEN_POWER); break;
+    case '&': set_token_next(TOKEN_CONCAT); break;
+    case '=': set_token_next(TOKEN_EQ); break;
     case '<':
         next_char();
         if (curchar == '<') {
-            next_char();
-            return TOKEN_LSHIFT;
+            set_token_next(TOKEN_LSHIFT);
         } else if (curchar == '=') {
-            next_char();
-            return TOKEN_LSEQ;
+            set_token_next(TOKEN_LSEQ);
         } else if (curchar == '>') {
-            next_char();
-            return TOKEN_NEQ;
+            set_token_next(TOKEN_NEQ);
+        } else {
+            set_token(TOKEN_LS);
         }
-        return TOKEN_LS;
+        break;
+
     case '>':
         next_char();
         if (curchar == '>') {
-            next_char();
-            return TOKEN_RSHIFT;
+            set_token_next(TOKEN_RSHIFT);
         } else if (curchar == '=') {
-            next_char();
-            return TOKEN_GTEQ;
+            set_token_next(TOKEN_GTEQ);
+        } else {
+            set_token(TOKEN_GT);
         }
-        return TOKEN_GT;
+        break;
 
     default:
         break;

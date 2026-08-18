@@ -1,7 +1,7 @@
 #ifndef LEXER_H
 #define LEXER_H
 
-typedef enum Token {
+typedef enum TokenType {
     TOKEN_ERROR = 0,
 
     TOKEN_KW_AND,
@@ -71,11 +71,26 @@ typedef enum Token {
     TOKEN_GTEQ,
     TOKEN_LS,
     TOKEN_LSEQ
+} TokenType;
+
+typedef struct Token {
+
+    TokenType token_type;
+
+    int line;
+    int col;
+
+    union {
+        KmInt int_value;
+        KmFloat float_value;
+        size_t length;
+    };
+
 } Token;
 
 void open_file(const char* filename);
 void close_file();
 
-extern char curchar;
+extern Token token;
 
 #endif
