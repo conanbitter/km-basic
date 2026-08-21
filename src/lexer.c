@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #define INPUT_BUFFER_SIZE (512)
 
@@ -94,8 +95,6 @@ struct DecTableRow {
 };
 
 Token token;
-
-static char temp[256];
 
 static const struct DecTableRow kw_table[169] = {
     {'A',  1, 9},
@@ -279,7 +278,10 @@ static void refill_buffer() {
 
 static void next_char() {
     if (input_cursor >= input_buffer + current_size) {
-        if (input_eof) return '\0';
+        if (input_eof) {
+            curchar = '\0';
+            return;
+        }
         refill_buffer();
     }
     curchar = *input_cursor;
@@ -340,10 +342,13 @@ void skip_comment() {
     }
 }
 
-static void set_token(TokenType token_type) {
-    token.token_type = token_type;
+static void begin_token() {
     token.line = file_line;
     token.col = file_col;
+}
+
+static void set_token(TokenType token_type) {
+    token.token_type = token_type;
 }
 
 static void set_token_next(TokenType token_type) {
@@ -366,11 +371,25 @@ static void set_token_len(TokenType token_type, size_t value) {
     token.length = value;
 }
 
+static bool is_alpha(char symbol) {
+    return (symbol >= 'A' && symbol <= 'Z') || (symbol >= 'a' && symbol <= 'z') || symbol == '_';
+}
+
+static bool is_numeric(char symbol) {
+    return symbol >= '0' && symbol <= '9';
+}
+
+static bool is_alphanum(char symbol) {
+    return is_alpha(symbol) || is_numeric(symbol);
+}
+
 void next_token(char* buffer, size_t buffer_length) {
     skip_spaces();
     if (curchar == '\'') {
         skip_comment();
     }
+
+    begin_token();
 
     switch (curchar)
     {
@@ -418,7 +437,50 @@ void next_token(char* buffer, size_t buffer_length) {
         break;
 
     default:
-        break;
+        if (is_alpha(curchar)) {
+            const char* start = buffer;
+            size_t length = 0;
+            while (is_alphanum(curchar))
+            {
+                if (curchar >= 'a' && curchar <= 'z') {
+                    *buffer = curchar - 'a' + 'A';
+                } else {
+                    *buffer = curchar;
+                }
+                buffer++;
+                length++;
+                next_char();
+            }
+            if (curchar == '#' || curchar == '$') {
+                *buffer = curchar;
+                buffer++;
+                length++;
+                next_char();
+            }
+            *buffer = '\0';
+            buffer++;
+            TokenType kw = check_keyword(start);
+            if (kw != TOKEN_ERROR) {
+                set_token(kw);
+            } else {
+                set_token_len(TOKEN_ID, length);
+            }
+        } else if (is_numeric(curchar)) {
+            //TODO floats
+            const char* start = buffer;
+            while (is_numeric(curchar))
+            {
+                *buffer = curchar;
+                buffer++;
+                next_char();
+            }
+            *buffer = '\0';
+            buffer++;
+            char* end;
+            set_token_int(TOKEN_INTLIT, strtol(start, &end, 10));
+        } else {
+            set_token(TOKEN_ERROR);
+        }
     }
 }
 
@@ -430,16 +492,16 @@ void print_token(char* buffer) {
 #endif
     switch (token.token_type) {
     case TOKEN_INTLIT:
-        printf("= %d", token.int_value);
+        printf(" = %d", token.int_value);
         break;
     case TOKEN_FLOATLIT:
-        printf("= %f", token.float_value);
+        printf(" = %f", token.float_value);
         break;
     case TOKEN_ID:
-        printf("'%.*s'", token.length, buffer);
+        printf(" '%.*s'", token.length, buffer);
         break;
     case TOKEN_STRLIT:
-        printf("\"%.*s\"", token.length, buffer);
+        printf(" \"%.*s\"", token.length, buffer);
         break;
     }
 }

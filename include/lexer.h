@@ -1,6 +1,8 @@
 #ifndef LEXER_H
 #define LEXER_H
 
+#include "common.h"
+
 typedef enum TokenType {
     TOKEN_ERROR = 0,
 
@@ -90,6 +92,8 @@ typedef struct Token {
 
 void open_file(const char* filename);
 void close_file();
+void next_token(char* buffer, size_t buffer_length);
+void print_token(char* buffer);
 
 extern Token token;
 
