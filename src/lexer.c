@@ -336,7 +336,7 @@ void skip_newlines() {
 }
 
 void skip_comment() {
-    while (curchar != '\r' || curchar != '\n' || curchar != '\0')
+    while (curchar != '\r' && curchar != '\n' && curchar != '\0')
     {
         next_char();
     }
@@ -381,6 +381,33 @@ static bool is_numeric(char symbol) {
 
 static bool is_alphanum(char symbol) {
     return is_alpha(symbol) || is_numeric(symbol);
+}
+
+static void copy_char(char** buffer) {
+    **buffer = curchar;
+    (*buffer)++;
+    next_char();
+}
+
+static void process_int(char** buffer) {
+    while (is_numeric(curchar))
+    {
+        copy_char(buffer);
+    }
+}
+
+static void process_float(char** buffer) {
+    if (curchar == '.') {
+        copy_char(buffer); // copy '.'
+        process_int(buffer);
+    }
+    if (curchar == 'e' || curchar == 'E') {
+        copy_char(buffer); // copy 'e'
+        if (curchar == '+' || curchar == '-') {
+            copy_char(buffer); // copy sign
+        }
+        process_int(buffer);
+    }
 }
 
 void next_token(char* buffer, size_t buffer_length) {
@@ -436,6 +463,40 @@ void next_token(char* buffer, size_t buffer_length) {
         }
         break;
 
+    case '.': {
+        char* end;
+        const char* start = buffer;
+        process_float(&buffer);
+        *buffer = '\0';
+        buffer++;
+        set_token_float(TOKEN_FLOATLIT, strtof(start, &end));
+    }
+            break;
+
+    case '"': {
+        next_char();
+        size_t length = 0;
+        while (curchar != '\0')
+        {
+            if (curchar == '"') {
+                next_char();
+                if (curchar == '"') {
+                    *buffer = '"';
+                    buffer++;
+                    length++;
+                    next_char();
+                } else {
+                    set_token_len(TOKEN_STRLIT, length);
+                    break;
+                }
+            } else {
+                copy_char(&buffer);
+                length++;
+            }
+        }
+    }
+            break;
+
     default:
         if (is_alpha(curchar)) {
             const char* start = buffer;
@@ -466,18 +527,19 @@ void next_token(char* buffer, size_t buffer_length) {
                 set_token_len(TOKEN_ID, length);
             }
         } else if (is_numeric(curchar)) {
-            //TODO floats
-            const char* start = buffer;
-            while (is_numeric(curchar))
-            {
-                *buffer = curchar;
-                buffer++;
-                next_char();
-            }
-            *buffer = '\0';
-            buffer++;
             char* end;
-            set_token_int(TOKEN_INTLIT, strtol(start, &end, 10));
+            const char* start = buffer;
+            process_int(&buffer);
+            if (curchar == '.' || curchar == 'e' || curchar == 'E') {
+                process_float(&buffer);
+                *buffer = '\0';
+                buffer++;
+                set_token_float(TOKEN_FLOATLIT, strtof(start, &end));
+            } else {
+                *buffer = '\0';
+                buffer++;
+                set_token_int(TOKEN_INTLIT, strtol(start, &end, 10));
+            }
         } else {
             set_token(TOKEN_ERROR);
         }

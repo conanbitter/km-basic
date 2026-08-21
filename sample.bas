@@ -44,7 +44,7 @@ sub make_step
 end sub
 
 
-sub display()
+sub display
 	for i = PADDING to TOTAL_WIDTH - PADDING - 1
 		if cur_line(i) = 1 then print "*"; else print " ";
 	next i
@@ -59,3 +59,9 @@ for i = 1 to 25
 	make_step
 	display
 next i
+
+'test
+a = .5
+b=3.5e-2
+c=3E3
+s$="Quotes ""this"" is"
