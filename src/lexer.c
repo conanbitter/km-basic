@@ -329,7 +329,7 @@ void skip_newlines() {
     while (curchar == '\n' || curchar == '\r' || curchar == ':') {
         if (curchar == '\n') {
             file_line++;
-            file_col = 1;
+            file_col = 0;
         }
         next_char();
     }
