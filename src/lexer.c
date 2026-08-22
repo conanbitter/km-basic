@@ -321,8 +321,12 @@ TokenType check_keyword(const char* name) {
     }
 }
 
+bool is_space(char symbol) {
+    return curchar == ' ' || curchar == '\t';
+}
+
 void skip_spaces() {
-    while (curchar == ' ' || curchar == '\t') next_char();
+    while (is_space(curchar)) next_char();
 }
 
 void skip_newlines() {
@@ -411,137 +415,158 @@ static void process_float(char** buffer) {
 }
 
 void next_token(char* buffer, size_t buffer_length) {
-    skip_spaces();
-    if (curchar == '\'') {
-        skip_comment();
-    }
-
-    begin_token();
-
-    switch (curchar)
-    {
-    case '\0': set_token(TOKEN_EOF); break;
-    case '\r':
-    case '\n':
-    case ':':
-        skip_newlines();
-        set_token(TOKEN_NEWLINE);
-        break;
-    case '(': set_token_next(TOKEN_LPAREN); break;
-    case ')': set_token_next(TOKEN_RPAREN); break;
-    case ',': set_token_next(TOKEN_COMMA); break;
-    case ';': set_token_next(TOKEN_SEMICOLON); break;
-    case '+': set_token_next(TOKEN_PLUS); break;
-    case '-': set_token_next(TOKEN_MINUS); break;
-    case '*': set_token_next(TOKEN_MUL); break;
-    case '/': set_token_next(TOKEN_DIV); break;
-    case '\\': set_token_next(TOKEN_INTDIV); break;
-    case '^': set_token_next(TOKEN_POWER); break;
-    case '&': set_token_next(TOKEN_CONCAT); break;
-    case '=': set_token_next(TOKEN_EQ); break;
-    case '<':
-        next_char();
-        if (curchar == '<') {
-            set_token_next(TOKEN_LSHIFT);
-        } else if (curchar == '=') {
-            set_token_next(TOKEN_LSEQ);
-        } else if (curchar == '>') {
-            set_token_next(TOKEN_NEQ);
-        } else {
-            set_token(TOKEN_LS);
-        }
-        break;
-
-    case '>':
-        next_char();
-        if (curchar == '>') {
-            set_token_next(TOKEN_RSHIFT);
-        } else if (curchar == '=') {
-            set_token_next(TOKEN_GTEQ);
-        } else {
-            set_token(TOKEN_GT);
-        }
-        break;
-
-    case '.': {
-        char* end;
-        const char* start = buffer;
-        process_float(&buffer);
-        *buffer = '\0';
-        buffer++;
-        set_token_float(TOKEN_FLOATLIT, strtof(start, &end));
-    }
+    while (true) {
+        bool was_spaces = is_space(curchar);
+        skip_spaces();
+        if (curchar == '\'') {
+            skip_comment();
             break;
+        }
 
-    case '"': {
-        next_char();
-        size_t length = 0;
-        while (curchar != '\0')
+        begin_token();
+
+        switch (curchar)
         {
-            if (curchar == '"') {
-                next_char();
+        case '\0': set_token(TOKEN_EOF); return;
+        case '\r':
+        case '\n':
+        case ':':
+            skip_newlines();
+            if (token.token_type == TOKEN_NEWLINE) {
+                break;
+            } else {
+                set_token(TOKEN_NEWLINE);
+                return;
+            }
+        case '(': set_token_next(TOKEN_LPAREN); return;
+        case ')': set_token_next(TOKEN_RPAREN); return;
+        case ',': set_token_next(TOKEN_COMMA); return;
+        case ';': set_token_next(TOKEN_SEMICOLON); return;
+        case '+': set_token_next(TOKEN_PLUS); return;
+        case '-': set_token_next(TOKEN_MINUS); return;
+        case '*': set_token_next(TOKEN_MUL); return;
+        case '/': set_token_next(TOKEN_DIV); return;
+        case '\\': set_token_next(TOKEN_INTDIV); return;
+        case '^': set_token_next(TOKEN_POWER); return;
+        case '&': set_token_next(TOKEN_CONCAT); return;
+        case '=': set_token_next(TOKEN_EQ); return;
+        case '<':
+            next_char();
+            if (curchar == '<') {
+                set_token_next(TOKEN_LSHIFT);
+            } else if (curchar == '=') {
+                set_token_next(TOKEN_LSEQ);
+            } else if (curchar == '>') {
+                set_token_next(TOKEN_NEQ);
+            } else {
+                set_token(TOKEN_LS);
+            }
+            return;
+
+        case '>':
+            next_char();
+            if (curchar == '>') {
+                set_token_next(TOKEN_RSHIFT);
+            } else if (curchar == '=') {
+                set_token_next(TOKEN_GTEQ);
+            } else {
+                set_token(TOKEN_GT);
+            }
+            return;
+
+        case '.': {
+            char* end;
+            const char* start = buffer;
+            process_float(&buffer);
+            *buffer = '\0';
+            buffer++;
+            set_token_float(TOKEN_FLOATLIT, strtof(start, &end));
+            return;
+        }
+
+        case '"': {
+            next_char();
+            size_t length = 0;
+            while (curchar != '\0')
+            {
                 if (curchar == '"') {
-                    *buffer = '"';
+                    next_char();
+                    if (curchar == '"') {
+                        *buffer = '"';
+                        buffer++;
+                        length++;
+                        next_char();
+                    } else {
+                        set_token_len(TOKEN_STRLIT, length);
+                        break;
+                    }
+                } else {
+                    copy_char(&buffer);
+                    length++;
+                }
+            }
+            return;
+        }
+
+        default:
+            if (is_alpha(curchar)) {
+                const char* start = buffer;
+                size_t length = 0;
+                while (is_alphanum(curchar))
+                {
+                    if (curchar >= 'a' && curchar <= 'z') {
+                        *buffer = curchar - 'a' + 'A';
+                    } else {
+                        *buffer = curchar;
+                    }
                     buffer++;
                     length++;
                     next_char();
-                } else {
-                    set_token_len(TOKEN_STRLIT, length);
-                    break;
                 }
-            } else {
-                copy_char(&buffer);
-                length++;
-            }
-        }
-    }
-            break;
-
-    default:
-        if (is_alpha(curchar)) {
-            const char* start = buffer;
-            size_t length = 0;
-            while (is_alphanum(curchar))
-            {
-                if (curchar >= 'a' && curchar <= 'z') {
-                    *buffer = curchar - 'a' + 'A';
-                } else {
+                if (curchar == '#' || curchar == '$') {
                     *buffer = curchar;
+                    buffer++;
+                    length++;
+                    next_char();
                 }
-                buffer++;
-                length++;
-                next_char();
-            }
-            if (curchar == '#' || curchar == '$') {
-                *buffer = curchar;
-                buffer++;
-                length++;
-                next_char();
-            }
-            *buffer = '\0';
-            buffer++;
-            TokenType kw = check_keyword(start);
-            if (kw != TOKEN_ERROR) {
-                set_token(kw);
-            } else {
-                set_token_len(TOKEN_ID, length);
-            }
-        } else if (is_numeric(curchar)) {
-            char* end;
-            const char* start = buffer;
-            process_int(&buffer);
-            if (curchar == '.' || curchar == 'e' || curchar == 'E') {
-                process_float(&buffer);
+                // newline skipper
+                if (length == 1 && *start == '_' && was_spaces) {
+                    if (curchar == '\r' || curchar == '\n') {
+                        skip_newlines();
+                        break;
+                    }
+                }
+
                 *buffer = '\0';
                 buffer++;
-                set_token_float(TOKEN_FLOATLIT, strtof(start, &end));
+                TokenType kw = check_keyword(start);
+                if (kw == TOKEN_KW_REM) {
+                    skip_comment();
+                    break;
+                } else if (kw != TOKEN_ERROR) {
+                    set_token(kw);
+                } else {
+                    set_token_len(TOKEN_ID, length);
+                }
+            } else if (is_numeric(curchar)) {
+                char* end;
+                const char* start = buffer;
+                process_int(&buffer);
+                if (curchar == '.' || curchar == 'e' || curchar == 'E') {
+                    process_float(&buffer);
+                    *buffer = '\0';
+                    buffer++;
+                    set_token_float(TOKEN_FLOATLIT, strtof(start, &end));
+                } else {
+                    *buffer = '\0';
+                    buffer++;
+                    set_token_int(TOKEN_INTLIT, strtol(start, &end, 10));
+                }
             } else {
-                *buffer = '\0';
-                buffer++;
-                set_token_int(TOKEN_INTLIT, strtol(start, &end, 10));
+                set_token(TOKEN_ERROR);
+                printf("[%d:%d] ERROR: unknown symbol '%c'", file_line, file_col, curchar);
             }
-        } else {
-            set_token(TOKEN_ERROR);
+            return;
         }
     }
 }

@@ -2,6 +2,7 @@ const DISPLAY_WIDTH = 50
 const PADDING = 40
 const TOTAL_WIDTH = DISPLAY_WIDTH + 2 * PADDING
 
+rem Test comment
 
 dim cur_line(TOTAL_WIDTH)
 dim next_line(TOTAL_WIDTH)
@@ -61,7 +62,13 @@ for i = 1 to 25
 next i
 
 'test
+'test2
 a = .5
-b=3.5e-2
-c=3E3
+b=3.5e-2 rem comment
+c=3E3 'comment
 s$="Quotes ""this"" is"
+a=5+5 _
++7+8
+c=6+_
+8
+b= 6+ _some + _+6
