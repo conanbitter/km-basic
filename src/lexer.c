@@ -387,34 +387,47 @@ static bool is_alphanum(char symbol) {
     return is_alpha(symbol) || is_numeric(symbol);
 }
 
-static void copy_char(char** buffer) {
+static void copy_char(char** buffer, const char* buffer_end) {
+    if (*buffer == buffer_end) {
+        printf("Run out of memory");
+        exit(1);
+    }
     **buffer = curchar;
     (*buffer)++;
     next_char();
 }
 
-static void process_int(char** buffer) {
+static void add_char(char symbol, char** buffer, const char* buffer_end) {
+    if (*buffer == buffer_end) {
+        printf("Run out of memory");
+        exit(1);
+    }
+    **buffer = symbol;
+    (*buffer)++;
+}
+
+static void process_int(char** buffer, const char* buffer_end) {
     while (is_numeric(curchar))
     {
-        copy_char(buffer);
+        copy_char(buffer, buffer_end);
     }
 }
 
-static void process_float(char** buffer) {
+static void process_float(char** buffer, const char* buffer_end) {
     if (curchar == '.') {
-        copy_char(buffer); // copy '.'
-        process_int(buffer);
+        copy_char(buffer, buffer_end); // copy '.'
+        process_int(buffer, buffer_end);
     }
     if (curchar == 'e' || curchar == 'E') {
-        copy_char(buffer); // copy 'e'
+        copy_char(buffer, buffer_end); // copy 'e'
         if (curchar == '+' || curchar == '-') {
-            copy_char(buffer); // copy sign
+            copy_char(buffer, buffer_end); // copy sign
         }
-        process_int(buffer);
+        process_int(buffer, buffer_end);
     }
 }
 
-void next_token(char* buffer, size_t buffer_length) {
+void next_token(char* buffer, const char* buffer_end) {
     while (true) {
         bool was_spaces = is_space(curchar);
         skip_spaces();
@@ -477,9 +490,8 @@ void next_token(char* buffer, size_t buffer_length) {
         case '.': {
             char* end;
             const char* start = buffer;
-            process_float(&buffer);
-            *buffer = '\0';
-            buffer++;
+            process_float(&buffer, buffer_end);
+            add_char('\0', &buffer, buffer_end);
             set_token_float(TOKEN_FLOATLIT, strtof(start, &end));
             return;
         }
@@ -492,8 +504,7 @@ void next_token(char* buffer, size_t buffer_length) {
                 if (curchar == '"') {
                     next_char();
                     if (curchar == '"') {
-                        *buffer = '"';
-                        buffer++;
+                        add_char('"', &buffer, buffer_end);
                         length++;
                         next_char();
                     } else {
@@ -501,7 +512,7 @@ void next_token(char* buffer, size_t buffer_length) {
                         break;
                     }
                 } else {
-                    copy_char(&buffer);
+                    copy_char(&buffer, buffer_end);
                     length++;
                 }
             }
@@ -515,17 +526,15 @@ void next_token(char* buffer, size_t buffer_length) {
                 while (is_alphanum(curchar))
                 {
                     if (curchar >= 'a' && curchar <= 'z') {
-                        *buffer = curchar - 'a' + 'A';
+                        add_char(curchar - 'a' + 'A', &buffer, buffer_end);
+                        next_char();
                     } else {
-                        *buffer = curchar;
+                        copy_char(&buffer, buffer_end);
                     }
-                    buffer++;
                     length++;
-                    next_char();
                 }
                 if (curchar == '#' || curchar == '$') {
-                    *buffer = curchar;
-                    buffer++;
+                    copy_char(&buffer, buffer_end);
                     length++;
                     next_char();
                 }
@@ -537,8 +546,7 @@ void next_token(char* buffer, size_t buffer_length) {
                     }
                 }
 
-                *buffer = '\0';
-                buffer++;
+                add_char('\0', &buffer, buffer_end);
                 TokenType kw = check_keyword(start);
                 if (kw == TOKEN_KW_REM) {
                     skip_comment();
@@ -551,20 +559,19 @@ void next_token(char* buffer, size_t buffer_length) {
             } else if (is_numeric(curchar)) {
                 char* end;
                 const char* start = buffer;
-                process_int(&buffer);
+                process_int(&buffer, buffer_end);
                 if (curchar == '.' || curchar == 'e' || curchar == 'E') {
-                    process_float(&buffer);
-                    *buffer = '\0';
-                    buffer++;
+                    process_float(&buffer, buffer_end);
+                    add_char('\0', &buffer, buffer_end);
                     set_token_float(TOKEN_FLOATLIT, strtof(start, &end));
                 } else {
-                    *buffer = '\0';
-                    buffer++;
+                    add_char('\0', &buffer, buffer_end);
                     set_token_int(TOKEN_INTLIT, strtol(start, &end, 10));
                 }
             } else {
                 set_token(TOKEN_ERROR);
                 printf("[%d:%d] ERROR: unknown symbol '%c'", file_line, file_col, curchar);
+                exit(1);
             }
             return;
         }
