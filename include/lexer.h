@@ -90,6 +90,8 @@ typedef struct Token {
 
 } Token;
 
+extern const char* TOKEN_NAMES[];
+
 void open_file(const char* filename);
 void close_file();
 void next_token(char* buffer, const char* buffer_end);

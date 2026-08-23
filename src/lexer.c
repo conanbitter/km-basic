@@ -17,74 +17,72 @@ static bool input_eof;
 static int file_line;
 static int file_col;
 
-#ifdef _DEBUG
 const char* TOKEN_NAMES[] = {
     "ERROR",
-    "KW_AND",
-    "KW_ANDTHEN",
-    "KW_CASE",
-    "KW_CONST",
-    "KW_CONTINUE",
-    "KW_DECLARE",
-    "KW_DIM",
-    "KW_DO",
-    "KW_ELSE",
-    "KW_ELSEIF",
-    "KW_END",
-    "KW_EXIT",
-    "KW_FOR",
-    "KW_FUNCTION",
-    "KW_GLOBAL",
-    "KW_IF",
-    "KW_INPUT",
-    "KW_IS",
-    "KW_LEN",
-    "KW_LOOP",
-    "KW_MOD",
-    "KW_NEXT",
-    "KW_NOT",
-    "KW_OR",
-    "KW_ORELSE",
-    "KW_PRINT",
-    "KW_REF",
-    "KW_REM",
-    "KW_RETURN",
-    "KW_SELECT",
-    "KW_STATIC",
-    "KW_STEP",
-    "KW_SUB",
-    "KW_THEN",
-    "KW_TO",
-    "KW_UNTIL",
-    "KW_WHILE",
-    "KW_XOR",
+    "AND",
+    "ANDTHEN",
+    "CASE",
+    "CONST",
+    "CONTINUE",
+    "DECLARE",
+    "DIM",
+    "DO",
+    "ELSE",
+    "ELSEIF",
+    "END",
+    "EXIT",
+    "FOR",
+    "FUNCTION",
+    "GLOBAL",
+    "IF",
+    "INPUT",
+    "IS",
+    "LEN",
+    "LOOP",
+    "MOD",
+    "NEXT",
+    "NOT",
+    "OR",
+    "ORELSE",
+    "PRINT",
+    "REF",
+    "REM",
+    "RETURN",
+    "SELECT",
+    "STATIC",
+    "STEP",
+    "SUB",
+    "THEN",
+    "TO",
+    "UNTIL",
+    "WHILE",
+    "XOR",
     "NEWLINE",
     "EOF",
     "ID",
     "INTLIT",
     "FLOATLIT",
     "STRLIT",
-    "LPAREN '('",
-    "RPAREN ')'",
-    "COMMA ','",
-    "SEMICOLON ';'",
-    "PLUS '+'",
-    "MINUS '-'",
-    "MUL '*'",
-    "DIV '/'",
-    "INTDIV '\\'",
-    "POWER '^'",
-    "CONCAT '&'",
-    "LSHIFT '<<'",
-    "RSHIFT '>>'",
-    "EQ '='",
-    "NEQ '<>'",
-    "GT '>'",
-    "GTEQ '>='",
-    "LS '<'",
-    "LSEQ '<="
+    "(",
+    ")",
+    ",",
+    ";",
+    "+",
+    "-",
+    "*",
+    "/",
+    "\\",
+    "^",
+    "&",
+    "<<",
+    ">>",
+    "=",
+    "<>",
+    ">",
+    ">=",
+    "<",
+    "<="
 };
-#endif
 
 char curchar;
 
@@ -388,7 +386,7 @@ static bool is_alphanum(char symbol) {
 }
 
 static void copy_char(char** buffer, const char* buffer_end) {
-    if (*buffer == buffer_end) {
+    if (*buffer >= buffer_end) {
         printf("Run out of memory");
         exit(1);
     }
@@ -398,7 +396,7 @@ static void copy_char(char** buffer, const char* buffer_end) {
 }
 
 static void add_char(char symbol, char** buffer, const char* buffer_end) {
-    if (*buffer == buffer_end) {
+    if (*buffer >= buffer_end) {
         printf("Run out of memory");
         exit(1);
     }
@@ -579,23 +577,19 @@ void next_token(char* buffer, const char* buffer_end) {
 }
 
 void print_token(char* buffer) {
-#ifdef _DEBUG
     printf("[%d:%d] %s", token.line, token.col, TOKEN_NAMES[token.token_type]);
-#else
-    printf("[%d:%d] %d", token.line, token.col, token.token_type);
-#endif
     switch (token.token_type) {
     case TOKEN_INTLIT:
-        printf(" = %d", token.int_value);
+        printf(" = %d", (int)token.int_value);
         break;
     case TOKEN_FLOATLIT:
         printf(" = %f", token.float_value);
         break;
     case TOKEN_ID:
-        printf(" '%.*s'", token.length, buffer);
+        printf(" '%.*s'", (int)token.length, buffer);
         break;
     case TOKEN_STRLIT:
-        printf(" \"%.*s\"", token.length, buffer);
+        printf(" \"%.*s\"", (int)token.length, buffer);
         break;
     }
 }
