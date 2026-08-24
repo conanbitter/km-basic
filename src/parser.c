@@ -79,6 +79,22 @@ static void unexpected() {
     exit(1);
 }
 
+static ExprResult conv2float(ExprResult intnode) {
+    ExprResult result;
+    result.data_type = TYPE_FLOAT;
+    result.is_literal = intnode.is_literal;
+    if (intnode.is_literal) {
+        result.float_value = intnode.int_value;
+    } else {
+        TreeNode* node = add_node();
+        node->node_type = NODE_ITOF;
+        node->child = intnode.node;
+
+        result.node = node;
+    }
+    return result;
+}
+
 static ExprResult expr1() {
     ExprResult result;
     TreeNode* node;
@@ -90,7 +106,7 @@ static ExprResult expr1() {
         node->intlit = token.int_value;
 
         result.data_type = TYPE_INT;
-        result.is_literal = true;
+        result.is_literal = false;
         result.int_value = token.int_value;
         result.node = node;
         NEXT;
@@ -102,20 +118,19 @@ static ExprResult expr1() {
         node->floatlit = token.float_value;
 
         result.data_type = TYPE_FLOAT;
-        result.is_literal = true;
+        result.is_literal = false;
         result.float_value = token.float_value;
         result.node = node;
         NEXT;
         return result;
 
-        /*case TOKEN_STRLIT:
-            result.data_type = TYPE_STRING;
-            result.is_literal = true;
-            printf("push str \"%.*s\"\n", (int)token.length, work_data);
-            result.pointer = buffer;
-            emplace_string(token.length);
-            NEXT;
-            return result;*/
+    case TOKEN_STRLIT:
+        result.data_type = TYPE_STRING;
+        result.is_literal = true;
+        //result.pointer = buffer;
+        emplace_string(token.length);
+        NEXT;
+        return result;
 
     default:
         unexpected();
@@ -127,21 +142,66 @@ static ExprResult expr() {
     ExprResult left = expr1();
     while (token.token_type == TOKEN_PLUS)
     {
+        TokenType tt = token.token_type;
+        int line = token.line;
+        int col = token.col;
+        if (left.data_type != TYPE_INT && left.data_type != TYPE_FLOAT) {
+            printf("[%d:%d] ERROR: wrong type for left operand of '%c'. Must be INTEGER or FLOAT\n", line, col, tt == TOKEN_PLUS ? '+' : '-');
+            exit(1);
+        }
         expect(TOKEN_PLUS);
         ExprResult next = expr1();
+        if (next.data_type != TYPE_INT && next.data_type != TYPE_FLOAT) {
+            printf("[%d:%d] ERROR: wrong type for right operand of '%c'. Must be INTEGER or FLOAT\n", line, col, tt == TOKEN_PLUS ? '+' : '-');
+            exit(1);
+        }
+
+        if (left.data_type == TYPE_INT && next.data_type == TYPE_FLOAT) {
+            left = conv2float(left);
+        }
+        if (left.data_type == TYPE_FLOAT && next.data_type == TYPE_INT) {
+            next = conv2float(next);
+        }
 
         TreeNode* node = add_node();
         node->node_type = NODE_BINOP;
-        node->binop.op = BINOP_IADD;
+        node->binop.op = left.data_type == TYPE_INT ? BINOP_IADD : BINOP_FADD;
         node->binop.left = left.node;
         node->binop.right = next.node;
 
         left.is_literal = false;
         left.node = node;
-
-        NEXT;
     }
     return left;
+}
+
+void debug_print_tree(char* start, char* end) {
+    TreeNode* _end = (TreeNode*)end;
+    TreeNode* cur = (TreeNode*)start;
+    while (cur != _end)
+    {
+        printf("%p ", (void*)cur);
+        switch (cur->node_type)
+        {
+        case NODE_BINOP:
+            printf("binop     %d  %p, %p\n", cur->binop.op, (void*)(cur->binop.left), (void*)(cur->binop.right));
+            break;
+
+        case NODE_FLOATLIT:
+            printf("floatlit  %f\n", cur->floatlit);
+            break;
+
+        case NODE_INTLIT:
+            printf("intlit    %d\n", cur->intlit);
+            break;
+
+        case NODE_ITOF:
+            printf("itof      %p\n", (void*)(cur->child));
+            break;
+        }
+        cur++;
+    }
+
 }
 
 void parse(char* _buffer, char* _buffer_end) {
@@ -149,6 +209,8 @@ void parse(char* _buffer, char* _buffer_end) {
     buffer_end = _buffer_end;
     work_data = buffer + sizeof(DictHeader);
     NEXT;
-    expr();
+    ExprResult res = expr();
+    printf("Root = %p\n", (void*)res.node);
+    debug_print_tree(buffer_end, _buffer_end);
 }
 

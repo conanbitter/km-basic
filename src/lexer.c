@@ -387,7 +387,7 @@ static bool is_alphanum(char symbol) {
 
 static void copy_char(char** buffer, const char* buffer_end) {
     if (*buffer >= buffer_end) {
-        printf("Run out of memory");
+        printf("Run out of memory\n");
         exit(1);
     }
     **buffer = curchar;
@@ -397,7 +397,7 @@ static void copy_char(char** buffer, const char* buffer_end) {
 
 static void add_char(char symbol, char** buffer, const char* buffer_end) {
     if (*buffer >= buffer_end) {
-        printf("Run out of memory");
+        printf("Run out of memory\n");
         exit(1);
     }
     **buffer = symbol;
@@ -568,7 +568,7 @@ void next_token(char* buffer, const char* buffer_end) {
                 }
             } else {
                 set_token(TOKEN_ERROR);
-                printf("[%d:%d] ERROR: unknown symbol '%c'", file_line, file_col, curchar);
+                printf("[%d:%d] ERROR: unknown symbol '%c'\n", file_line, file_col, curchar);
                 exit(1);
             }
             return;

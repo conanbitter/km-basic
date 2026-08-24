@@ -6,6 +6,7 @@ typedef enum NodeType {
     NODE_BINOP,
     NODE_INTLIT,
     NODE_FLOATLIT,
+    NODE_ITOF,
 } NodeType;
 
 typedef enum BinOpType {
@@ -55,6 +56,7 @@ struct TreeNode
         BinOpData binop;
         KmInt intlit;
         KmFloat floatlit;
+        TreeNode* child;
     };
     NodeType node_type;
 };
