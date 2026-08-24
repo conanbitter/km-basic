@@ -1,6 +1,7 @@
 #ifndef TREE_H
 #define TREE_H
 
+#include "common.h"
 
 typedef enum NodeType {
     NODE_BINOP,
@@ -61,5 +62,6 @@ struct TreeNode
     NodeType node_type;
 };
 
+void debug_print_tree(char* start, char* end);
 
 #endif
