@@ -8,12 +8,14 @@ set(INCLUDE_FILES
     common.h
     lexer.h
     parser.h
+    tree.h
 )
 
 set(SRC_FILES
     main.c
     lexer.c
     parser.c
+    tree.c
 )
 
 list(TRANSFORM INCLUDE_FILES PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/include/)

@@ -3,10 +3,12 @@
 #include "common.h"
 #include "lexer.h"
 #include "parser.h"
+#include "tree.h"
 
 char buffer[256];
 
 int main() {
+    printf("Node size %d bytes\nBinop size %d\nEnum size %d\n", sizeof(TreeNode), sizeof(BinOpData), sizeof(NodeType));
     open_file("parsetest.bas");
     /*
         open_file("sample.bas");

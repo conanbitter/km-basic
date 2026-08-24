@@ -17,4 +17,10 @@ typedef float KmFloat;
 #error "Unknown architecture"
 #endif
 
+typedef enum DataType {
+    TYPE_INT,
+    TYPE_FLOAT,
+    TYPE_STRING
+} DataType;
+
 #endif
