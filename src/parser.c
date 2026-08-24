@@ -181,7 +181,7 @@ void parse(char* _buffer, char* _buffer_end) {
     work_data = buffer + sizeof(DictHeader);
     NEXT;
     ExprResult res = expr();
-    printf("Root = %p\n", (void*)res.node);
+    printf("Root = %d\n", (uintptr_t)res.node - (uintptr_t)buffer_end);
     debug_print_tree(buffer_end, _buffer_end);
 }
 
