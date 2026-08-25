@@ -534,7 +534,6 @@ void next_token(char* buffer, const char* buffer_end) {
                 if (curchar == '#' || curchar == '$') {
                     copy_char(&buffer, buffer_end);
                     length++;
-                    next_char();
                 }
                 // newline skipper
                 if (length == 1 && *start == '_' && was_spaces) {
