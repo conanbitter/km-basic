@@ -2,11 +2,13 @@
 #define TREE_H
 
 #include "common.h"
+#include "stdbool.h"
 
 typedef enum NodeType {
     NODE_BINOP,
     NODE_INTLIT,
     NODE_FLOATLIT,
+    NODE_LOAD,
     NODE_ITOF,
 } NodeType;
 
@@ -51,12 +53,18 @@ typedef struct BinOpData {
     BinOpType op;
 } BinOpData;
 
+typedef struct LoadData {
+    uintptr_t offset;
+    bool is_local;
+} LoadData;
+
 struct TreeNode
 {
     union {
         BinOpData binop;
         KmInt intlit;
         KmFloat floatlit;
+        LoadData load;
         TreeNode* child;
     };
     NodeType node_type;

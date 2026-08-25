@@ -21,6 +21,10 @@ void debug_print_tree(char* start, char* end) {
             printf("intlit    %d\n", cur->intlit);
             break;
 
+        case NODE_LOAD:
+            printf("load %s  %d\n", cur->load.is_local ? "loc" : "glb", cur->load.offset);
+            break;
+
         case NODE_ITOF:
             printf("itof      [%d]\n", (uintptr_t)(cur->child) - _start);
             break;

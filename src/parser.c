@@ -17,8 +17,8 @@ typedef struct ExprResult {
     union {
         KmInt int_value;
         KmFloat float_value;
+        TreeNode* node;
     };
-    TreeNode* node;
 } ExprResult;
 
 static char* buffer;
@@ -97,30 +97,19 @@ static ExprResult conv2float(ExprResult intnode) {
 
 static ExprResult expr1() {
     ExprResult result;
-    TreeNode* node;
     switch (token.token_type)
     {
     case TOKEN_INTLIT:
-        node = add_node();
-        node->node_type = NODE_INTLIT;
-        node->intlit = token.int_value;
-
         result.data_type = TYPE_INT;
-        result.is_literal = false;
+        result.is_literal = true;
         result.int_value = token.int_value;
-        result.node = node;
         NEXT;
         return result;
 
     case TOKEN_FLOATLIT:
-        node = add_node();
-        node->node_type = NODE_FLOATLIT;
-        node->floatlit = token.float_value;
-
         result.data_type = TYPE_FLOAT;
-        result.is_literal = false;
+        result.is_literal = true;
         result.float_value = token.float_value;
-        result.node = node;
         NEXT;
         return result;
 
@@ -132,10 +121,41 @@ static ExprResult expr1() {
         NEXT;
         return result;
 
+    case TOKEN_ID:
+        char suffix = *(work_data + token.length - 1);
+        result.data_type = suffix == '#' ? TYPE_FLOAT : TYPE_INT;
+        result.is_literal = false;
+        result.node = add_node();
+        result.node->node_type = NODE_LOAD;
+        result.node->load.is_local = false;
+        result.node->load.offset = 0;
+        NEXT;
+        return result;
+
     default:
         unexpected();
         break;
     }
+}
+
+static ExprResult make_node(ExprResult res) {
+    ExprResult noderes;
+    TreeNode* node = add_node();
+    noderes.is_literal = false;
+    noderes.data_type = res.data_type;
+    noderes.node = node;
+    switch (res.data_type)
+    {
+    case TYPE_INT:
+        node->node_type = NODE_INTLIT;
+        node->intlit = res.int_value;
+        break;
+    case TYPE_FLOAT:
+        node->node_type = NODE_FLOATLIT;
+        node->floatlit = res.float_value;
+        break;
+    }
+    return noderes;
 }
 
 static ExprResult expr() {
@@ -163,14 +183,26 @@ static ExprResult expr() {
             next = conv2float(next);
         }
 
-        TreeNode* node = add_node();
-        node->node_type = NODE_BINOP;
-        node->binop.op = left.data_type == TYPE_INT ? BINOP_IADD : BINOP_FADD;
-        node->binop.left = left.node;
-        node->binop.right = next.node;
+        if (left.is_literal && next.is_literal) {
+            if (left.data_type == TYPE_INT) {
+                left.int_value += next.int_value;
+            }
+            if (left.data_type == TYPE_FLOAT) {
+                left.float_value += next.float_value;
+            }
+        } else {
+            if (left.is_literal) left = make_node(left);
+            if (next.is_literal) next = make_node(next);
 
-        left.is_literal = false;
-        left.node = node;
+            TreeNode* node = add_node();
+            node->node_type = NODE_BINOP;
+            node->binop.op = left.data_type == TYPE_INT ? BINOP_IADD : BINOP_FADD;
+            node->binop.left = left.node;
+            node->binop.right = next.node;
+
+            left.is_literal = false;
+            left.node = node;
+        }
     }
     return left;
 }
@@ -181,6 +213,7 @@ void parse(char* _buffer, char* _buffer_end) {
     work_data = buffer + sizeof(DictHeader);
     NEXT;
     ExprResult res = expr();
+    if (res.is_literal) res = make_node(res);
     printf("Root = %d\n", (uintptr_t)res.node - (uintptr_t)buffer_end);
     debug_print_tree(buffer_end, _buffer_end);
 }
