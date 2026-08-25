@@ -1,4 +1,42 @@
 #include "tree.h"
+#include "stdio.h"
+#include "inttypes.h"
+
+static const char* opstr[] = {
+    "^  ",
+    "I* ",
+    "F* ",
+    "\\  ",
+    "/  ",
+    "MOD",
+    "I+ ",
+    "F+ ",
+    "I- ",
+    "F- ",
+    "&  ",
+    "<< ",
+    ">> ",
+    "I==",
+    "F==",
+    "$==",
+    "I!=",
+    "F!=",
+    "$!=",
+    "I> ",
+    "F> ",
+    "I>=",
+    "F>=",
+    "I< ",
+    "F< ",
+    "I<=",
+    "F<=",
+    "AND",
+    "OR ",
+    "XOR",
+    "NEG",
+    "NOT",
+    "I2F"
+};
 
 void debug_print_tree(char* start, char* end) {
     TreeNode* _end = (TreeNode*)end;
@@ -6,11 +44,16 @@ void debug_print_tree(char* start, char* end) {
     uintptr_t _start = (uintptr_t)start;
     while (cur != _end)
     {
-        printf("%4d ", (uintptr_t)cur - _start);
+        printf("%4" PRIuPTR " ", (uintptr_t)cur - _start);
         switch (cur->node_type)
         {
-        case NODE_BINOP:
-            printf("binop     %d  [%d], [%d]\n", cur->binop.op, (uintptr_t)(cur->binop.left) - _start, (uintptr_t)(cur->binop.right) - _start);
+        case NODE_EXPROP:
+            printf("op %s    [%" PRIuPTR "]", opstr[cur->exprop.op], (uintptr_t)(cur->exprop.left) - _start);
+            if (cur->exprop.right != NULL) {
+                printf(", [%" PRIuPTR "]\n", (uintptr_t)(cur->exprop.right) - _start);
+            } else {
+                printf("\n");
+            }
             break;
 
         case NODE_FLOATLIT:
@@ -22,11 +65,7 @@ void debug_print_tree(char* start, char* end) {
             break;
 
         case NODE_LOAD:
-            printf("load %s  %d\n", cur->load.is_local ? "loc" : "glb", cur->load.offset);
-            break;
-
-        case NODE_ITOF:
-            printf("itof      [%d]\n", (uintptr_t)(cur->child) - _start);
+            printf("load %s  %" PRIuPTR "\n", cur->load.is_local ? "loc" : "glb", cur->load.offset);
             break;
         }
         cur++;

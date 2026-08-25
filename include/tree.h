@@ -5,14 +5,13 @@
 #include "stdbool.h"
 
 typedef enum NodeType {
-    NODE_BINOP,
+    NODE_EXPROP,
     NODE_INTLIT,
     NODE_FLOATLIT,
     NODE_LOAD,
-    NODE_ITOF,
 } NodeType;
 
-typedef enum BinOpType {
+typedef enum ExprOpType {
     BINOP_POWER,
     BINOP_IMUL,
     BINOP_FMUL,
@@ -42,16 +41,19 @@ typedef enum BinOpType {
     BINOP_FLSEQ,
     BINOP_AND,
     BINOP_OR,
-    BINOP_XOR
-} BinOpType;
+    BINOP_XOR,
+    UNOP_NEG,
+    UNOP_NOT,
+    UNOP_ITOF
+} ExprOpType;
 
 typedef struct TreeNode TreeNode;
 
-typedef struct BinOpData {
+typedef struct ExprOpData {
     TreeNode* left;
     TreeNode* right;
-    BinOpType op;
-} BinOpData;
+    ExprOpType op;
+} ExprOpData;
 
 typedef struct LoadData {
     uintptr_t offset;
@@ -61,7 +63,7 @@ typedef struct LoadData {
 struct TreeNode
 {
     union {
-        BinOpData binop;
+        ExprOpData exprop;
         KmInt intlit;
         KmFloat floatlit;
         LoadData load;

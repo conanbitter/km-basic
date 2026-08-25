@@ -87,8 +87,10 @@ static ExprResult conv2float(ExprResult intnode) {
         result.float_value = intnode.int_value;
     } else {
         TreeNode* node = add_node();
-        node->node_type = NODE_ITOF;
-        node->child = intnode.node;
+        node->node_type = NODE_EXPROP;
+        node->exprop.op = UNOP_ITOF;
+        node->exprop.left = intnode.node;
+        node->exprop.right = NULL;
 
         result.node = node;
     }
@@ -195,10 +197,10 @@ static ExprResult expr() {
             if (next.is_literal) next = make_node(next);
 
             TreeNode* node = add_node();
-            node->node_type = NODE_BINOP;
-            node->binop.op = left.data_type == TYPE_INT ? BINOP_IADD : BINOP_FADD;
-            node->binop.left = left.node;
-            node->binop.right = next.node;
+            node->node_type = NODE_EXPROP;
+            node->exprop.op = left.data_type == TYPE_INT ? BINOP_IADD : BINOP_FADD;
+            node->exprop.left = left.node;
+            node->exprop.right = next.node;
 
             left.is_literal = false;
             left.node = node;
