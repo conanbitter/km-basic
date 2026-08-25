@@ -61,7 +61,7 @@ void debug_print_tree(char* start, char* end) {
             break;
 
         case NODE_INTLIT:
-            printf("intlit    %d\n", cur->intlit);
+            printf("intlit    %" PRIkmINT "\n", cur->intlit);
             break;
 
         case NODE_LOAD:

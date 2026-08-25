@@ -580,7 +580,7 @@ void print_token(char* buffer) {
     printf("[%d:%d] %s", token.line, token.col, TOKEN_NAMES[token.token_type]);
     switch (token.token_type) {
     case TOKEN_INTLIT:
-        printf(" = %d", (int)token.int_value);
+        printf(" = %" PRIkmINT, token.int_value);
         break;
     case TOKEN_FLOATLIT:
         printf(" = %f", token.float_value);
