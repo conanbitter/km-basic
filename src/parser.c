@@ -162,7 +162,7 @@ static ExprResult make_node(ExprResult res) {
 
 static ExprResult expr() {
     ExprResult left = expr1();
-    while (token.token_type == TOKEN_PLUS)
+    while (token.token_type == TOKEN_PLUS || token.token_type == TOKEN_MINUS)
     {
         TokenType tt = token.token_type;
         int line = token.line;
@@ -171,7 +171,7 @@ static ExprResult expr() {
             printf("[%d:%d] ERROR: wrong type for left operand of '%c'. Must be INTEGER or FLOAT\n", line, col, tt == TOKEN_PLUS ? '+' : '-');
             exit(1);
         }
-        expect(TOKEN_PLUS);
+        NEXT;
         ExprResult next = expr1();
         if (next.data_type != TYPE_INT && next.data_type != TYPE_FLOAT) {
             printf("[%d:%d] ERROR: wrong type for right operand of '%c'. Must be INTEGER or FLOAT\n", line, col, tt == TOKEN_PLUS ? '+' : '-');
@@ -187,10 +187,18 @@ static ExprResult expr() {
 
         if (left.is_literal && next.is_literal) {
             if (left.data_type == TYPE_INT) {
-                left.int_value += next.int_value;
+                if (tt == TOKEN_PLUS) {
+                    left.int_value += next.int_value;
+                } else {
+                    left.int_value -= next.int_value;
+                }
             }
             if (left.data_type == TYPE_FLOAT) {
-                left.float_value += next.float_value;
+                if (tt == TOKEN_PLUS) {
+                    left.float_value += next.float_value;
+                } else {
+                    left.float_value -= next.float_value;
+                }
             }
         } else {
             if (left.is_literal) left = make_node(left);
@@ -198,7 +206,7 @@ static ExprResult expr() {
 
             TreeNode* node = add_node();
             node->node_type = NODE_EXPROP;
-            node->exprop.op = left.data_type == TYPE_INT ? BINOP_IADD : BINOP_FADD;
+            node->exprop.op = left.data_type == TYPE_INT ? (tt == TOKEN_PLUS ? BINOP_IADD : BINOP_ISUB) : (tt == TOKEN_PLUS ? BINOP_FADD : BINOP_FSUB);
             node->exprop.left = left.node;
             node->exprop.right = next.node;
 
