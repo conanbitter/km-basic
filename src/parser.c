@@ -97,7 +97,7 @@ static ExprResult conv2float(ExprResult intnode) {
     return result;
 }
 
-static ExprResult expr1() {
+static ExprResult expr13() {
     ExprResult result;
     switch (token.token_type)
     {
@@ -160,8 +160,8 @@ static ExprResult make_node(ExprResult res) {
     return noderes;
 }
 
-static ExprResult expr() {
-    ExprResult left = expr1();
+static ExprResult expr7() {
+    ExprResult left = expr13();
     while (token.token_type == TOKEN_PLUS || token.token_type == TOKEN_MINUS)
     {
         TokenType tt = token.token_type;
@@ -172,7 +172,7 @@ static ExprResult expr() {
             exit(1);
         }
         NEXT;
-        ExprResult next = expr1();
+        ExprResult next = expr13();
         if (next.data_type != TYPE_INT && next.data_type != TYPE_FLOAT) {
             printf("[%d:%d] ERROR: wrong type for right operand of '%c'. Must be INTEGER or FLOAT\n", line, col, tt == TOKEN_PLUS ? '+' : '-');
             exit(1);
@@ -222,7 +222,7 @@ void parse(char* _buffer, char* _buffer_end) {
     buffer_end = _buffer_end;
     work_data = buffer + sizeof(DictHeader);
     NEXT;
-    ExprResult res = expr();
+    ExprResult res = expr7();
     if (res.is_literal) res = make_node(res);
     printf("Root = %d\n", (uintptr_t)res.node - (uintptr_t)buffer_end);
     debug_print_tree(buffer_end, _buffer_end);
