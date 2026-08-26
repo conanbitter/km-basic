@@ -12,7 +12,8 @@ typedef enum NodeType {
 } NodeType;
 
 typedef enum ExprOpType {
-    BINOP_POWER,
+    BINOP_IPOWER,
+    BINOP_FPOWER,
     BINOP_IMUL,
     BINOP_FMUL,
     BINOP_IDIV,
@@ -40,7 +41,9 @@ typedef enum ExprOpType {
     BINOP_ILSEQ,
     BINOP_FLSEQ,
     BINOP_AND,
+    BINOP_ANDSC, // short-circuit
     BINOP_OR,
+    BINOP_ORSC,  // short-circuit
     BINOP_XOR,
     UNOP_NEG,
     UNOP_NOT,

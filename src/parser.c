@@ -97,6 +97,26 @@ static ExprResult conv2float(ExprResult intnode) {
     return result;
 }
 
+static ExprResult make_node(ExprResult res) {
+    ExprResult noderes;
+    TreeNode* node = add_node();
+    noderes.is_literal = false;
+    noderes.data_type = res.data_type;
+    noderes.node = node;
+    switch (res.data_type)
+    {
+    case TYPE_INT:
+        node->node_type = NODE_INTLIT;
+        node->intlit = res.int_value;
+        break;
+    case TYPE_FLOAT:
+        node->node_type = NODE_FLOATLIT;
+        node->floatlit = res.float_value;
+        break;
+    }
+    return noderes;
+}
+
 static ExprResult expr13() {
     ExprResult result;
     switch (token.token_type)
@@ -140,28 +160,34 @@ static ExprResult expr13() {
     }
 }
 
-static ExprResult make_node(ExprResult res) {
-    ExprResult noderes;
-    TreeNode* node = add_node();
-    noderes.is_literal = false;
-    noderes.data_type = res.data_type;
-    noderes.node = node;
-    switch (res.data_type)
-    {
-    case TYPE_INT:
-        node->node_type = NODE_INTLIT;
-        node->intlit = res.int_value;
-        break;
-    case TYPE_FLOAT:
-        node->node_type = NODE_FLOATLIT;
-        node->floatlit = res.float_value;
-        break;
-    }
-    return noderes;
+// ^ (power)
+static ExprResult expr12() {
+    return expr13();
 }
 
+// + - (unary)
+static ExprResult expr11() {
+    return expr12();
+}
+
+// * /
+static ExprResult expr10() {
+    return expr11();
+}
+
+// \ (intdiv)
+static ExprResult expr9() {
+    return expr10();
+}
+
+// MOD
+static ExprResult expr8() {
+    return expr9();
+}
+
+// + -
 static ExprResult expr7() {
-    ExprResult left = expr13();
+    ExprResult left = expr8();
     while (token.token_type == TOKEN_PLUS || token.token_type == TOKEN_MINUS)
     {
         TokenType tt = token.token_type;
@@ -172,7 +198,7 @@ static ExprResult expr7() {
             exit(1);
         }
         NEXT;
-        ExprResult next = expr13();
+        ExprResult next = expr8();
         if (next.data_type != TYPE_INT && next.data_type != TYPE_FLOAT) {
             printf("[%d:%d] ERROR: wrong type for right operand of '%c'. Must be INTEGER or FLOAT\n", line, col, tt == TOKEN_PLUS ? '+' : '-');
             exit(1);
@@ -217,12 +243,47 @@ static ExprResult expr7() {
     return left;
 }
 
+// &
+static ExprResult expr6() {
+    return expr7();
+}
+
+// << >>
+static ExprResult expr5() {
+    return expr6();
+}
+
+// = <> > >= < <=
+static ExprResult expr4() {
+    return expr5();
+}
+
+// NOT
+static ExprResult expr3() {
+    return expr4();
+}
+
+// AND ANDALSO
+static ExprResult expr2() {
+    return expr3();
+}
+
+// OR ORELSE
+static ExprResult expr1() {
+    return expr2();
+}
+
+// XOR
+static ExprResult expr() {
+    return expr1();
+}
+
 void parse(char* _buffer, char* _buffer_end) {
     buffer = _buffer;
     buffer_end = _buffer_end;
     work_data = buffer + sizeof(DictHeader);
     NEXT;
-    ExprResult res = expr7();
+    ExprResult res = expr();
     if (res.is_literal) res = make_node(res);
     printf("Root = %d\n", (uintptr_t)res.node - (uintptr_t)buffer_end);
     debug_print_tree(buffer_end, _buffer_end);
