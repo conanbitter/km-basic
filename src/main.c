@@ -5,7 +5,9 @@
 #include "parser.h"
 #include "tree.h"
 
-char buffer[256];
+#define BUFFER_SIZE (1024)
+
+char buffer[BUFFER_SIZE];
 
 int main() {
     open_file("parsetest.bas");
@@ -18,7 +20,7 @@ int main() {
             next_token(buffer, 256);
         }
     */
-    parse(buffer, buffer + 256);
+    parse(buffer, buffer + BUFFER_SIZE);
     close_file();
     return 0;
 }

@@ -97,6 +97,24 @@ static ExprResult conv2float(ExprResult intnode) {
     return result;
 }
 
+static ExprResult conv2int(ExprResult floatnode) {
+    ExprResult result;
+    result.data_type = TYPE_INT;
+    result.is_literal = floatnode.is_literal;
+    if (floatnode.is_literal) {
+        result.int_value = floatnode.float_value;
+    } else {
+        TreeNode* node = add_node();
+        node->node_type = NODE_EXPROP;
+        node->exprop.op = UNOP_FTOI;
+        node->exprop.left = floatnode.node;
+        node->exprop.right = NULL;
+
+        result.node = node;
+    }
+    return result;
+}
+
 static ExprResult make_node(ExprResult res) {
     ExprResult noderes;
     TreeNode* node = add_node();
@@ -116,6 +134,8 @@ static ExprResult make_node(ExprResult res) {
     }
     return noderes;
 }
+
+static ExprResult expr();
 
 static ExprResult expr13() {
     ExprResult result;
@@ -154,6 +174,12 @@ static ExprResult expr13() {
         NEXT;
         return result;
 
+    case TOKEN_LPAREN:
+        expect(TOKEN_LPAREN);
+        result = expr();
+        expect(TOKEN_RPAREN);
+        return result;
+
     default:
         unexpected();
         break;
@@ -172,12 +198,119 @@ static ExprResult expr11() {
 
 // * /
 static ExprResult expr10() {
-    return expr11();
+    ExprResult left = expr11();
+    while (token.token_type == TOKEN_MUL || token.token_type == TOKEN_DIV)
+    {
+        TokenType tt = token.token_type;
+        int line = token.line;
+        int col = token.col;
+
+        if (left.data_type != TYPE_INT && left.data_type != TYPE_FLOAT) {
+            printf("[%d:%d] ERROR: wrong type for left operand of '%c'. Must be INTEGER or FLOAT\n", line, col, tt == TOKEN_MUL ? '*' : '/');
+            exit(1);
+        }
+        NEXT;
+        ExprResult right = expr11();
+        if (right.data_type != TYPE_INT && right.data_type != TYPE_FLOAT) {
+            printf("[%d:%d] ERROR: wrong type for right operand of '%c'. Must be INTEGER or FLOAT\n", line, col, tt == TOKEN_MUL ? '*' : '/');
+            exit(1);
+        }
+
+        if (tt == TOKEN_MUL) {
+            if (left.data_type == TYPE_INT && right.data_type == TYPE_FLOAT) {
+                left = conv2float(left);
+            }
+            if (left.data_type == TYPE_FLOAT && right.data_type == TYPE_INT) {
+                right = conv2float(right);
+            }
+            if (left.is_literal && right.is_literal) {
+                if (left.data_type == TYPE_INT) {
+                    left.int_value *= right.int_value;
+                } else {
+                    left.float_value *= right.float_value;
+                }
+            } else {
+                if (left.is_literal) left = make_node(left);
+                if (right.is_literal) right = make_node(right);
+
+                TreeNode* node = add_node();
+                node->node_type = NODE_EXPROP;
+                node->exprop.op = left.data_type == TYPE_INT ? BINOP_IMUL : BINOP_FMUL;
+                node->exprop.left = left.node;
+                node->exprop.right = right.node;
+
+                left.is_literal = false;
+                left.node = node;
+            }
+        } else {
+            if (left.data_type == TYPE_INT) {
+                left = conv2float(left);
+            }
+            if (right.data_type == TYPE_INT) {
+                right = conv2float(right);
+            }
+            if (left.is_literal && right.is_literal) {
+                left.float_value /= right.float_value;
+            } else {
+                if (left.is_literal) left = make_node(left);
+                if (right.is_literal) right = make_node(right);
+
+                TreeNode* node = add_node();
+                node->node_type = NODE_EXPROP;
+                node->exprop.op = BINOP_FDIV;
+                node->exprop.left = left.node;
+                node->exprop.right = right.node;
+
+                left.is_literal = false;
+                left.node = node;
+            }
+        }
+    }
+    return left;
 }
 
 // \ (intdiv)
 static ExprResult expr9() {
-    return expr10();
+    ExprResult left = expr10();
+    while (token.token_type == TOKEN_INTDIV)
+    {
+        int line = token.line;
+        int col = token.col;
+
+        if (left.data_type != TYPE_INT && left.data_type != TYPE_FLOAT) {
+            printf("[%d:%d] ERROR: wrong type for left operand of '\\'. Must be INTEGER or FLOAT\n", line, col);
+            exit(1);
+        }
+        NEXT;
+        ExprResult right = expr10();
+        if (right.data_type != TYPE_INT && right.data_type != TYPE_FLOAT) {
+            printf("[%d:%d] ERROR: wrong type for right operand of '\\'. Must be INTEGER or FLOAT\n", line, col);
+            exit(1);
+        }
+
+        if (left.data_type == TYPE_FLOAT) {
+            left = conv2int(left);
+        }
+        if (right.data_type == TYPE_FLOAT) {
+            right = conv2int(right);
+        }
+        if (left.is_literal && right.is_literal) {
+            left.int_value /= right.int_value;
+        } else {
+            if (left.is_literal) left = make_node(left);
+            if (right.is_literal) right = make_node(right);
+
+            TreeNode* node = add_node();
+            node->node_type = NODE_EXPROP;
+            node->exprop.op = BINOP_IDIV;
+            node->exprop.left = left.node;
+            node->exprop.right = right.node;
+
+            left.is_literal = false;
+            left.node = node;
+        }
+    }
+    return left;
 }
 
 // MOD

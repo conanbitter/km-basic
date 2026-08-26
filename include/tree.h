@@ -47,7 +47,8 @@ typedef enum ExprOpType {
     BINOP_XOR,
     UNOP_NEG,
     UNOP_NOT,
-    UNOP_ITOF
+    UNOP_ITOF,
+    UNOP_FTOI
 } ExprOpType;
 
 typedef struct TreeNode TreeNode;

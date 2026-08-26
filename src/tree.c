@@ -3,7 +3,8 @@
 #include "inttypes.h"
 
 static const char* opstr[] = {
-    "^  ",
+    "I^ ",
+    "F^ ",
     "I* ",
     "F* ",
     "\\  ",
@@ -31,11 +32,14 @@ static const char* opstr[] = {
     "I<=",
     "F<=",
     "AND",
+    "&& ",
     "OR ",
+    "|| ",
     "XOR",
     "NEG",
     "NOT",
-    "I2F"
+    "I2F",
+    "F2I"
 };
 
 void debug_print_tree(char* start, char* end) {
