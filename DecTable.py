@@ -17,7 +17,7 @@ class DestableRow:
 
 kwlist = [
     Keyword("AND", "TOKEN_KW_AND"),
-    Keyword("ANDTHEN", "TOKEN_KW_ANDTHEN"),
+    Keyword("ANDALSO", "TOKEN_KW_ANDALSO"),
     Keyword("CASE", "TOKEN_KW_CASE"),
     Keyword("CONST", "TOKEN_KW_CONST"),
     Keyword("CONTINUE", "TOKEN_KW_CONTINUE"),

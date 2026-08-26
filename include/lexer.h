@@ -7,7 +7,7 @@ typedef enum TokenType {
     TOKEN_ERROR = 0,
 
     TOKEN_KW_AND,
-    TOKEN_KW_ANDTHEN,
+    TOKEN_KW_ANDALSO,
     TOKEN_KW_CASE,
     TOKEN_KW_CONST,
     TOKEN_KW_CONTINUE,
