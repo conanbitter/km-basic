@@ -23,9 +23,9 @@ typedef float KmFloat;
 #endif
 
 typedef enum DataType {
-    TYPE_INT,
-    TYPE_FLOAT,
-    TYPE_STRING
+    TYPE_INT = 1,
+    TYPE_FLOAT = 1 << 1,
+    TYPE_STRING = 1 << 2
 } DataType;
 
 #endif

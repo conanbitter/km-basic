@@ -6,6 +6,8 @@
 #include <stdbool.h>
 #include <stdalign.h>
 
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
+
 typedef struct DictHeader {
     struct DictHeader* prev;
     uint32_t hash;
@@ -121,24 +123,85 @@ static void float2int(ExprResult* res) {
     }
 }
 
-static void make_node(ExprResult* res) {
-    if (!res->is_literal) return;
+static void type_cast(ExprResult* res, DataType target_type) {
+    if (res->data_type == TYPE_INT && target_type == TYPE_FLOAT) {
+        int2float(res);
+    }
+    if (res->data_type == TYPE_FLOAT && target_type == TYPE_INT) {
+        float2int(res);
+    }
+}
+
+static TreeNode* as_node(ExprResult res) {
+    if (!res.is_literal) return res.node;
 
     TreeNode* node = add_node();
-    res->is_literal = false;
-    res->node = node;
-
-    switch (res->data_type)
+    switch (res.data_type)
     {
     case TYPE_INT:
         node->node_type = NODE_INTLIT;
-        node->intlit = res->int_value;
+        node->intlit = res.int_value;
         break;
     case TYPE_FLOAT:
         node->node_type = NODE_FLOATLIT;
-        node->floatlit = res->float_value;
+        node->floatlit = res.float_value;
         break;
     }
+
+    return node;
+}
+
+const char* type2str(DataType datatype) {
+    switch (datatype) {
+    case TYPE_INT: return "INTEGER";
+    case TYPE_FLOAT: return "FLOAT";
+    case TYPE_STRING: return "STRING";
+    case TYPE_INT | TYPE_FLOAT: return "INTEGER or FLOAT";
+    default: return "UNKNOWN";
+    }
+}
+
+static void check_and_cast(ExprResult* left, ExprResult* right, DataType in_types, DataType out_types, Token* optoken) {
+    // type check
+    if ((left->data_type & in_types) == 0) {
+        printf("[%d:%d] ERROR: wrong type for left operand of '%s'. Type is %s, must be %s.",
+            optoken->line,
+            optoken->col,
+            TOKEN_NAMES[optoken->token_type],
+            type2str(left->data_type),
+            type2str(in_types)
+        );
+        exit(1);
+    }
+
+    if ((right->data_type & in_types) == 0) {
+        printf("[%d:%d] ERROR: wrong type for right operand of '%s'. Type is %s, must be %s.",
+            optoken->line,
+            optoken->col,
+            TOKEN_NAMES[optoken->token_type],
+            type2str(right->data_type),
+            type2str(in_types)
+        );
+        exit(1);
+    }
+
+    // type cast
+    DataType res_type = out_types == (TYPE_INT | TYPE_FLOAT) ? MAX(left->data_type, right->data_type) : out_types;
+    type_cast(left, res_type);
+    type_cast(right, res_type);
+}
+
+static ExprResult binop_expr(ExprResult left, ExprResult right, ExprOpType optype) {
+    TreeNode* node = add_node();
+    node->node_type = NODE_EXPROP;
+    node->exprop.op = optype;
+    node->exprop.left = as_node(left);
+    node->exprop.right = as_node(right);
+
+    left.is_literal = false;
+    left.node = node;
+
+    return left;
 }
 
 // EXPRESSIONS
@@ -207,71 +270,30 @@ static ExprResult expr11() {
 // * /
 static ExprResult expr10() {
     ExprResult left = expr11();
+
     while (token.token_type == TOKEN_MUL || token.token_type == TOKEN_DIV)
     {
-        TokenType tt = token.token_type;
-        int line = token.line;
-        int col = token.col;
-
-        if (left.data_type != TYPE_INT && left.data_type != TYPE_FLOAT) {
-            printf("[%d:%d] ERROR: wrong type for left operand of '%c'. Must be INTEGER or FLOAT\n", line, col, tt == TOKEN_MUL ? '*' : '/');
-            exit(1);
-        }
+        Token optoken = token;
         NEXT;
         ExprResult right = expr11();
-        if (right.data_type != TYPE_INT && right.data_type != TYPE_FLOAT) {
-            printf("[%d:%d] ERROR: wrong type for right operand of '%c'. Must be INTEGER or FLOAT\n", line, col, tt == TOKEN_MUL ? '*' : '/');
-            exit(1);
-        }
 
-        if (tt == TOKEN_MUL) {
-            if (left.data_type == TYPE_INT && right.data_type == TYPE_FLOAT) {
-                left = int2float(left);
-            }
-            if (left.data_type == TYPE_FLOAT && right.data_type == TYPE_INT) {
-                right = int2float(right);
-            }
-            if (left.is_literal && right.is_literal) {
+        DataType out_types = token.token_type == TOKEN_MUL ? TYPE_INT | TYPE_FLOAT : TYPE_FLOAT;
+        check_and_cast(&left, &right, TYPE_INT | TYPE_FLOAT, out_types, &optoken);
+
+        if (left.is_literal && right.is_literal) {
+            if (token.token_type == TOKEN_MUL) {
                 if (left.data_type == TYPE_INT) {
                     left.int_value *= right.int_value;
                 } else {
                     left.float_value *= right.float_value;
                 }
             } else {
-                if (left.is_literal) left = make_node(left);
-                if (right.is_literal) right = make_node(right);
-
-                TreeNode* node = add_node();
-                node->node_type = NODE_EXPROP;
-                node->exprop.op = left.data_type == TYPE_INT ? BINOP_IMUL : BINOP_FMUL;
-                node->exprop.left = left.node;
-                node->exprop.right = right.node;
-
-                left.is_literal = false;
-                left.node = node;
+                left.float_value /= right.float_value;
             }
         } else {
-            if (left.data_type == TYPE_INT) {
-                left = int2float(left);
-            }
-            if (right.data_type == TYPE_INT) {
-                right = int2float(right);
-            }
-            if (left.is_literal && right.is_literal) {
-                left.float_value /= right.float_value;
-            } else {
-                if (left.is_literal) left = make_node(left);
-                if (right.is_literal) right = make_node(right);
-
-                TreeNode* node = add_node();
-                node->node_type = NODE_EXPROP;
-                node->exprop.op = BINOP_FDIV;
-                node->exprop.left = left.node;
-                node->exprop.right = right.node;
-
-                left.is_literal = false;
-                left.node = node;
-            }
+            DataType op_type = optoken.token_type == TOKEN_MUL ?
+                (left.data_type == TYPE_INT ? BINOP_IMUL : BINOP_FMUL) : BINOP_FDIV;
+            left = binop_expr(left, right, op_type);
         }
     }
     return left;
@@ -280,42 +302,19 @@ static ExprResult expr10() {
 // \ (intdiv)
 static ExprResult expr9() {
     ExprResult left = expr10();
+
     while (token.token_type == TOKEN_INTDIV)
     {
-        int line = token.line;
-        int col = token.col;
-
-        if (left.data_type != TYPE_INT && left.data_type != TYPE_FLOAT) {
-            printf("[%d:%d] ERROR: wrong type for left operand of '\\'. Must be INTEGER or FLOAT\n", line, col);
-            exit(1);
-        }
+        Token optoken = token;
         NEXT;
         ExprResult right = expr10();
-        if (right.data_type != TYPE_INT && right.data_type != TYPE_FLOAT) {
-            printf("[%d:%d] ERROR: wrong type for right operand of '\\'. Must be INTEGER or FLOAT\n", line, col);
-            exit(1);
-        }
 
-        if (left.data_type == TYPE_FLOAT) {
-            left = float2int(left);
-        }
-        if (right.data_type == TYPE_FLOAT) {
-            right = float2int(right);
-        }
+        check_and_cast(&left, &right, TYPE_INT | TYPE_FLOAT, TYPE_INT, &optoken);
+
         if (left.is_literal && right.is_literal) {
             left.int_value /= right.int_value;
         } else {
-            if (left.is_literal) left = make_node(left);
-            if (right.is_literal) right = make_node(right);
-
-            TreeNode* node = add_node();
-            node->node_type = NODE_EXPROP;
-            node->exprop.op = BINOP_IDIV;
-            node->exprop.left = left.node;
-            node->exprop.right = right.node;
-
-            left.is_literal = false;
-            left.node = node;
+            left = binop_expr(left, right, BINOP_IDIV);
         }
     }
     return left;
@@ -329,56 +328,36 @@ static ExprResult expr8() {
 // + -
 static ExprResult expr7() {
     ExprResult left = expr8();
+
     while (token.token_type == TOKEN_PLUS || token.token_type == TOKEN_MINUS)
     {
-        TokenType tt = token.token_type;
-        int line = token.line;
-        int col = token.col;
-        if (left.data_type != TYPE_INT && left.data_type != TYPE_FLOAT) {
-            printf("[%d:%d] ERROR: wrong type for left operand of '%c'. Must be INTEGER or FLOAT\n", line, col, tt == TOKEN_PLUS ? '+' : '-');
-            exit(1);
-        }
+        Token optoken = token;
         NEXT;
-        ExprResult next = expr8();
-        if (next.data_type != TYPE_INT && next.data_type != TYPE_FLOAT) {
-            printf("[%d:%d] ERROR: wrong type for right operand of '%c'. Must be INTEGER or FLOAT\n", line, col, tt == TOKEN_PLUS ? '+' : '-');
-            exit(1);
-        }
+        ExprResult right = expr8();
 
-        if (left.data_type == TYPE_INT && next.data_type == TYPE_FLOAT) {
-            left = int2float(left);
-        }
-        if (left.data_type == TYPE_FLOAT && next.data_type == TYPE_INT) {
-            next = int2float(next);
-        }
+        check_and_cast(&left, &right, TYPE_INT | TYPE_FLOAT, TYPE_INT | TYPE_FLOAT, &token);
 
-        if (left.is_literal && next.is_literal) {
+        if (left.is_literal && right.is_literal) {
             if (left.data_type == TYPE_INT) {
-                if (tt == TOKEN_PLUS) {
-                    left.int_value += next.int_value;
+                if (optoken.token_type == TOKEN_PLUS) {
+                    left.int_value += right.int_value;
                 } else {
-                    left.int_value -= next.int_value;
+                    left.int_value -= right.int_value;
                 }
             }
             if (left.data_type == TYPE_FLOAT) {
-                if (tt == TOKEN_PLUS) {
-                    left.float_value += next.float_value;
+                if (optoken.token_type == TOKEN_PLUS) {
+                    left.float_value += right.float_value;
                 } else {
-                    left.float_value -= next.float_value;
+                    left.float_value -= right.float_value;
                 }
             }
         } else {
-            if (left.is_literal) left = make_node(left);
-            if (next.is_literal) next = make_node(next);
+            DataType op_type = left.data_type == TYPE_INT ?
+                (optoken.token_type == TOKEN_PLUS ? BINOP_IADD : BINOP_ISUB) :
+                (optoken.token_type == TOKEN_PLUS ? BINOP_FADD : BINOP_FSUB);
 
-            TreeNode* node = add_node();
-            node->node_type = NODE_EXPROP;
-            node->exprop.op = left.data_type == TYPE_INT ? (tt == TOKEN_PLUS ? BINOP_IADD : BINOP_ISUB) : (tt == TOKEN_PLUS ? BINOP_FADD : BINOP_FSUB);
-            node->exprop.left = left.node;
-            node->exprop.right = next.node;
-
-            left.is_literal = false;
-            left.node = node;
+            left = binop_expr(left, right, op_type);
         }
     }
     return left;
@@ -427,8 +406,8 @@ void parse(char* _buffer, char* _buffer_end) {
     work_data = buffer + sizeof(DictHeader);
     NEXT;
     ExprResult res = expr();
-    if (res.is_literal) res = make_node(res);
-    printf("Root = %d\n", (uintptr_t)res.node - (uintptr_t)buffer_end);
+    TreeNode* res_node = as_node(res);
+    printf("Root = %d\n", (uintptr_t)res_node - (uintptr_t)buffer_end);
     debug_print_tree(buffer_end, _buffer_end);
 }
 
