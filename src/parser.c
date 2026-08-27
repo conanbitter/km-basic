@@ -5,6 +5,7 @@
 
 #include <stdbool.h>
 #include <stdalign.h>
+#include <math.h>
 
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
@@ -191,6 +192,20 @@ static void check_and_cast(ExprResult* left, ExprResult* right, DataType in_type
     type_cast(right, res_type);
 }
 
+static void check_unary(ExprResult* operand, DataType in_types, Token* optoken) {
+    // type check
+    if ((operand->data_type & in_types) == 0) {
+        printf("[%d:%d] ERROR: wrong type for operand of unary '%s'. Type is %s, must be %s.",
+            optoken->line,
+            optoken->col,
+            TOKEN_NAMES[optoken->token_type],
+            type2str(operand->data_type),
+            type2str(in_types)
+        );
+        exit(1);
+    }
+}
+
 static ExprResult binop_expr(ExprResult left, ExprResult right, ExprOpType optype) {
     TreeNode* node = add_node();
     node->node_type = NODE_EXPROP;
@@ -202,6 +217,34 @@ static ExprResult binop_expr(ExprResult left, ExprResult right, ExprOpType optyp
     left.node = node;
 
     return left;
+}
+
+static ExprResult unop_expr(ExprResult operand, ExprOpType optype) {
+    TreeNode* node = add_node();
+    node->node_type = NODE_EXPROP;
+    node->exprop.op = optype;
+    node->exprop.left = as_node(operand);
+    node->exprop.right = NULL;
+
+    operand.is_literal = false;
+    operand.node = node;
+
+    return operand;
+}
+
+int ipow(KmInt base, KmInt exp)
+{
+    if (exp == 0) return 1;
+    int result = 1;
+    while (true)
+    {
+        if (exp & 1)
+            result *= base;
+        exp >>= 1;
+        if (!exp) break;
+        base *= base;
+    }
+    return result;
 }
 
 // EXPRESSIONS
@@ -259,12 +302,68 @@ static ExprResult expr13() {
 
 // ^ (power)
 static ExprResult expr12() {
-    return expr13();
+    ExprResult left = expr13();
+
+    while (token.token_type == TOKEN_POWER)
+    {
+        Token optoken = token;
+        NEXT;
+        ExprResult right = expr13();
+
+        check_and_cast(&left, &right, TYPE_INT | TYPE_FLOAT, TYPE_INT | TYPE_FLOAT, &token);
+
+        if (right.is_literal && right.data_type == TYPE_INT && right.int_value < 0) {
+            printf("[%d:%d] ERROR: Attempt to exponetiate integer with negative exponent (%" PRIkmINT ").",
+                optoken.line,
+                optoken.col,
+                right.int_value
+            );
+            exit(1);
+        }
+
+        if (left.is_literal && right.is_literal) {
+            if (left.data_type == TYPE_INT) {
+                left.int_value = ipow(left.int_value, right.int_value);
+            } else {
+                left.float_value = powf(left.float_value, right.float_value);
+            }
+        } else {
+            left = binop_expr(left, right, left.data_type == TYPE_INT ? BINOP_IPOWER : BINOP_FPOWER);
+        }
+    }
+    return left;
 }
 
 // + - (unary)
 static ExprResult expr11() {
-    return expr12();
+    switch (token.token_type)
+    {
+    case TOKEN_PLUS:
+        NEXT;
+        return expr12();
+        break;
+
+    case TOKEN_MINUS: {
+        Token optoken = token;
+        NEXT;
+        ExprResult operand = expr12();
+        check_unary(&operand, TYPE_INT | TYPE_FLOAT, &optoken);
+
+        if (operand.is_literal) {
+            if (operand.data_type == TYPE_INT) {
+                operand.int_value = -operand.int_value;
+            } else {
+                operand.float_value = -operand.float_value;
+            }
+            return operand;
+        } else {
+            return unop_expr(operand, UNOP_NEG);
+        }
+    }
+
+    default:
+        return expr12();
+    }
 }
 
 // * /
