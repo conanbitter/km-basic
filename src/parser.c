@@ -32,6 +32,8 @@ static DictHeader* prev = NULL;
 
 const uintptr_t ptr_alignment = _Alignof(KmInt);
 
+#pragma region Dictionary
+
 static char* align_ptr(char* ptr) {
     uintptr_t intptr = (uintptr_t)ptr;
     uintptr_t result = (intptr + ptr_alignment - 1) & ~(ptr_alignment - 1);
@@ -56,6 +58,10 @@ static void emplace_string(size_t length) {
     work_data = buffer + sizeof(DictHeader);
 }
 
+#pragma endregion
+
+#pragma region Parser service functions
+
 static TreeNode* add_node() {
     if ((buffer_end - sizeof(TreeNode)) <= buffer) {
         printf("Run out of memory");
@@ -79,61 +85,63 @@ static void unexpected() {
     exit(1);
 }
 
-static ExprResult conv2float(ExprResult intnode) {
-    ExprResult result;
-    result.data_type = TYPE_FLOAT;
-    result.is_literal = intnode.is_literal;
-    if (intnode.is_literal) {
-        result.float_value = intnode.int_value;
+#pragma endregion
+
+#pragma region Expressions
+
+// SERVICE FUNCTIONS
+
+static void int2float(ExprResult* res) {
+    res->data_type = TYPE_FLOAT;
+    if (res->is_literal) {
+        res->float_value = res->int_value;
     } else {
         TreeNode* node = add_node();
         node->node_type = NODE_EXPROP;
         node->exprop.op = UNOP_ITOF;
-        node->exprop.left = intnode.node;
+        node->exprop.left = res->node;
         node->exprop.right = NULL;
 
-        result.node = node;
+        res->node = node;
     }
-    return result;
 }
 
-static ExprResult conv2int(ExprResult floatnode) {
-    ExprResult result;
-    result.data_type = TYPE_INT;
-    result.is_literal = floatnode.is_literal;
-    if (floatnode.is_literal) {
-        result.int_value = floatnode.float_value;
+static void float2int(ExprResult* res) {
+    res->data_type = TYPE_INT;
+    if (res->is_literal) {
+        res->int_value = res->float_value;
     } else {
         TreeNode* node = add_node();
         node->node_type = NODE_EXPROP;
         node->exprop.op = UNOP_FTOI;
-        node->exprop.left = floatnode.node;
+        node->exprop.left = res->node;
         node->exprop.right = NULL;
 
-        result.node = node;
+        res->node = node;
     }
-    return result;
 }
 
-static ExprResult make_node(ExprResult res) {
-    ExprResult noderes;
+static void make_node(ExprResult* res) {
+    if (!res->is_literal) return;
+
     TreeNode* node = add_node();
-    noderes.is_literal = false;
-    noderes.data_type = res.data_type;
-    noderes.node = node;
-    switch (res.data_type)
+    res->is_literal = false;
+    res->node = node;
+
+    switch (res->data_type)
     {
     case TYPE_INT:
         node->node_type = NODE_INTLIT;
-        node->intlit = res.int_value;
+        node->intlit = res->int_value;
         break;
     case TYPE_FLOAT:
         node->node_type = NODE_FLOATLIT;
-        node->floatlit = res.float_value;
+        node->floatlit = res->float_value;
         break;
     }
-    return noderes;
 }
+
+// EXPRESSIONS
 
 static ExprResult expr();
 
@@ -218,10 +226,10 @@ static ExprResult expr10() {
 
         if (tt == TOKEN_MUL) {
             if (left.data_type == TYPE_INT && right.data_type == TYPE_FLOAT) {
-                left = conv2float(left);
+                left = int2float(left);
             }
             if (left.data_type == TYPE_FLOAT && right.data_type == TYPE_INT) {
-                right = conv2float(right);
+                right = int2float(right);
             }
             if (left.is_literal && right.is_literal) {
                 if (left.data_type == TYPE_INT) {
@@ -244,10 +252,10 @@ static ExprResult expr10() {
             }
         } else {
             if (left.data_type == TYPE_INT) {
-                left = conv2float(left);
+                left = int2float(left);
             }
             if (right.data_type == TYPE_INT) {
-                right = conv2float(right);
+                right = int2float(right);
             }
             if (left.is_literal && right.is_literal) {
                 left.float_value /= right.float_value;
@@ -289,10 +297,10 @@ static ExprResult expr9() {
         }
 
         if (left.data_type == TYPE_FLOAT) {
-            left = conv2int(left);
+            left = float2int(left);
         }
         if (right.data_type == TYPE_FLOAT) {
-            right = conv2int(right);
+            right = float2int(right);
         }
         if (left.is_literal && right.is_literal) {
             left.int_value /= right.int_value;
@@ -338,10 +346,10 @@ static ExprResult expr7() {
         }
 
         if (left.data_type == TYPE_INT && next.data_type == TYPE_FLOAT) {
-            left = conv2float(left);
+            left = int2float(left);
         }
         if (left.data_type == TYPE_FLOAT && next.data_type == TYPE_INT) {
-            next = conv2float(next);
+            next = int2float(next);
         }
 
         if (left.is_literal && next.is_literal) {
@@ -410,6 +418,8 @@ static ExprResult expr1() {
 static ExprResult expr() {
     return expr1();
 }
+
+#pragma endregion
 
 void parse(char* _buffer, char* _buffer_end) {
     buffer = _buffer;
