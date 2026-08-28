@@ -28,4 +28,9 @@ typedef enum DataType {
     TYPE_STRING = 1 << 2
 } DataType;
 
+const KmInt KM_TRUE;
+const KmInt KM_FALSE;
+
+int ipow(KmInt base, KmInt exp);
+
 #endif

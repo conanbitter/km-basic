@@ -232,21 +232,6 @@ static ExprResult unop_expr(ExprResult operand, ExprOpType optype) {
     return operand;
 }
 
-int ipow(KmInt base, KmInt exp)
-{
-    if (exp == 0) return 1;
-    int result = 1;
-    while (true)
-    {
-        if (exp & 1)
-            result *= base;
-        exp >>= 1;
-        if (!exp) break;
-        base *= base;
-    }
-    return result;
-}
-
 // EXPRESSIONS
 
 static ExprResult expr();

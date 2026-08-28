@@ -12,6 +12,7 @@ set(INCLUDE_FILES
 )
 
 set(SRC_FILES
+    common.c
     main.c
     lexer.c
     parser.c
