@@ -406,7 +406,23 @@ static ExprResult expr9() {
 
 // MOD
 static ExprResult expr8() {
-    return expr9();
+    ExprResult left = expr9();
+
+    while (token.token_type == TOKEN_KW_MOD)
+    {
+        Token optoken = token;
+        NEXT;
+        ExprResult right = expr9();
+
+        check_and_cast(&left, &right, TYPE_INT | TYPE_FLOAT, TYPE_INT, &optoken);
+
+        if (left.is_literal && right.is_literal) {
+            left.int_value %= right.int_value;
+        } else {
+            left = binop_expr(left, right, BINOP_MOD);
+        }
+    }
+    return left;
 }
 
 // + -
@@ -428,8 +444,7 @@ static ExprResult expr7() {
                 } else {
                     left.int_value -= right.int_value;
                 }
-            }
-            if (left.data_type == TYPE_FLOAT) {
+            } else {
                 if (optoken.token_type == TOKEN_PLUS) {
                     left.float_value += right.float_value;
                 } else {
@@ -454,17 +469,118 @@ static ExprResult expr6() {
 
 // << >>
 static ExprResult expr5() {
-    return expr6();
+    ExprResult left = expr6();
+
+    while (token.token_type == TOKEN_LSHIFT || token.token_type == TOKEN_RSHIFT)
+    {
+        Token optoken = token;
+        NEXT;
+        ExprResult right = expr6();
+
+        check_and_cast(&left, &right, TYPE_INT, TYPE_INT, &token);
+
+        if (left.is_literal && right.is_literal) {
+            if (optoken.token_type == TOKEN_LSHIFT) {
+                left.int_value <<= right.int_value;
+            } else {
+                left.int_value >>= right.int_value;
+            }
+        } else {
+            left = binop_expr(left, right, optoken.token_type == TOKEN_LSHIFT ? BINOP_LSHIFT : BINOP_RSHIFT);
+        }
+    }
+    return left;
 }
 
+static const ExprOpType comp_ops_int[] = { BINOP_IEQ, BINOP_INEQ, BINOP_IGT, BINOP_IGTEQ, BINOP_ILS, BINOP_ILSEQ };
+static const ExprOpType comp_ops_float[] = { BINOP_FEQ, BINOP_FNEQ, BINOP_FGT, BINOP_FGTEQ, BINOP_FLS, BINOP_FLSEQ };
 // = <> > >= < <=
 static ExprResult expr4() {
-    return expr5();
+    ExprResult left = expr5();
+
+    while (token.token_type >= TOKEN_EQ || token.token_type <= TOKEN_LSEQ)
+    {
+        Token optoken = token;
+        NEXT;
+        ExprResult right = expr5();
+
+        check_and_cast(&left, &right, TYPE_INT | TYPE_FLOAT, TYPE_INT | TYPE_FLOAT, &token);
+
+        if (left.is_literal && right.is_literal) {
+            if (left.data_type == TYPE_INT) {
+                switch (optoken.token_type)
+                {
+                case TOKEN_EQ:
+                    left.int_value = left.int_value == right.int_value ? KM_TRUE : KM_FALSE;
+                    break;
+                case TOKEN_NEQ:
+                    left.int_value = left.int_value != right.int_value ? KM_TRUE : KM_FALSE;
+                    break;
+                case TOKEN_GT:
+                    left.int_value = left.int_value > right.int_value ? KM_TRUE : KM_FALSE;
+                    break;
+                case TOKEN_GTEQ:
+                    left.int_value = left.int_value >= right.int_value ? KM_TRUE : KM_FALSE;
+                    break;
+                case TOKEN_LS:
+                    left.int_value = left.int_value < right.int_value ? KM_TRUE : KM_FALSE;
+                    break;
+                case TOKEN_LSEQ:
+                    left.int_value = left.int_value >= right.int_value ? KM_TRUE : KM_FALSE;
+                    break;
+                }
+            } else {
+                left.data_type = TYPE_INT;
+                switch (optoken.token_type)
+                {
+                case TOKEN_EQ:
+                    left.int_value = left.float_value == right.float_value ? KM_TRUE : KM_FALSE;
+                    break;
+                case TOKEN_NEQ:
+                    left.int_value = left.float_value != right.float_value ? KM_TRUE : KM_FALSE;
+                    break;
+                case TOKEN_GT:
+                    left.int_value = left.float_value > right.float_value ? KM_TRUE : KM_FALSE;
+                    break;
+                case TOKEN_GTEQ:
+                    left.int_value = left.float_value >= right.float_value ? KM_TRUE : KM_FALSE;
+                    break;
+                case TOKEN_LS:
+                    left.int_value = left.float_value < right.float_value ? KM_TRUE : KM_FALSE;
+                    break;
+                case TOKEN_LSEQ:
+                    left.int_value = left.float_value >= right.float_value ? KM_TRUE : KM_FALSE;
+                    break;
+                }
+            }
+        } else {
+            DataType op_type = left.data_type == TYPE_INT ?
+                comp_ops_int[optoken.token_type - TOKEN_EQ] :
+                comp_ops_float[optoken.token_type - TOKEN_EQ];
+
+            left = binop_expr(left, right, op_type);
+        }
+    }
+    return left;
 }
 
 // NOT
 static ExprResult expr3() {
-    return expr4();
+    if (token.token_type == TOKEN_KW_NOT) {
+        Token optoken = token;
+        NEXT;
+        ExprResult operand = expr4();
+        check_unary(&operand, TYPE_INT, &optoken);
+
+        if (operand.is_literal) {
+            operand.int_value = ~operand.int_value;
+            return operand;
+        } else {
+            return unop_expr(operand, UNOP_NOT);
+        }
+    } else {
+        return expr4();
+    }
 }
 
 // AND ANDALSO
@@ -479,7 +595,23 @@ static ExprResult expr1() {
 
 // XOR
 static ExprResult expr() {
-    return expr1();
+    ExprResult left = expr1();
+
+    while (token.token_type == TOKEN_KW_XOR)
+    {
+        Token optoken = token;
+        NEXT;
+        ExprResult right = expr1();
+
+        check_and_cast(&left, &right, TYPE_INT, TYPE_INT, &optoken);
+
+        if (left.is_literal && right.is_literal) {
+            left.int_value ^= right.int_value;
+        } else {
+            left = binop_expr(left, right, BINOP_XOR);
+        }
+    }
+    return left;
 }
 
 #pragma endregion
