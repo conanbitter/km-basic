@@ -309,7 +309,7 @@ static ExprResult expr12() {
         NEXT;
         ExprResult right = expr13();
 
-        check_and_cast(&left, &right, TYPE_INT | TYPE_FLOAT, TYPE_INT | TYPE_FLOAT, &token);
+        check_and_cast(&left, &right, TYPE_INT | TYPE_FLOAT, TYPE_INT | TYPE_FLOAT, &optoken);
 
         if (right.is_literal && right.data_type == TYPE_INT && right.int_value < 0) {
             printf("[%d:%d] ERROR: Attempt to exponetiate integer with negative exponent (%" PRIkmINT ").",
@@ -449,7 +449,7 @@ static ExprResult expr7() {
         NEXT;
         ExprResult right = expr8();
 
-        check_and_cast(&left, &right, TYPE_INT | TYPE_FLOAT, TYPE_INT | TYPE_FLOAT, &token);
+        check_and_cast(&left, &right, TYPE_INT | TYPE_FLOAT, TYPE_INT | TYPE_FLOAT, &optoken);
 
         if (left.is_literal && right.is_literal) {
             if (left.data_type == TYPE_INT) {
@@ -491,7 +491,7 @@ static ExprResult expr5() {
         NEXT;
         ExprResult right = expr6();
 
-        check_and_cast(&left, &right, TYPE_INT, TYPE_INT, &token);
+        check_and_cast(&left, &right, TYPE_INT, TYPE_INT, &optoken);
 
         if (left.is_literal && right.is_literal) {
             if (optoken.token_type == TOKEN_LSHIFT) {
@@ -518,7 +518,7 @@ static ExprResult expr4() {
         NEXT;
         ExprResult right = expr5();
 
-        check_and_cast(&left, &right, TYPE_INT | TYPE_FLOAT, TYPE_INT | TYPE_FLOAT, &token);
+        check_and_cast(&left, &right, TYPE_INT | TYPE_FLOAT, TYPE_INT | TYPE_FLOAT, &optoken);
 
         if (left.is_literal && right.is_literal) {
             if (left.data_type == TYPE_INT) {
@@ -599,12 +599,48 @@ static ExprResult expr3() {
 
 // AND ANDALSO
 static ExprResult expr2() {
-    return expr3();
+    ExprResult left = expr3();
+
+    while (token.token_type == TOKEN_KW_AND || token.token_type == TOKEN_KW_ANDALSO)
+    {
+        Token optoken = token;
+        NEXT;
+        ExprResult right = expr3();
+
+        check_and_cast(&left, &right, TYPE_INT, TYPE_INT, &optoken);
+
+        if (optoken.token_type == TOKEN_KW_ANDALSO && left.is_literal && left.int_value == 0) continue;
+
+        if (left.is_literal && right.is_literal) {
+            left.int_value &= right.int_value;
+        } else {
+            left = binop_expr(left, right, optoken.token_type == TOKEN_KW_AND ? BINOP_AND : BINOP_ANDSC);
+        }
+    }
+    return left;
 }
 
 // OR ORELSE
 static ExprResult expr1() {
-    return expr2();
+    ExprResult left = expr2();
+
+    while (token.token_type == TOKEN_KW_OR || token.token_type == TOKEN_KW_ORELSE)
+    {
+        Token optoken = token;
+        NEXT;
+        ExprResult right = expr2();
+
+        check_and_cast(&left, &right, TYPE_INT, TYPE_INT, &optoken);
+
+        if (optoken.token_type == TOKEN_KW_ORELSE && left.is_literal && left.int_value != 0) continue;
+
+        if (left.is_literal && right.is_literal) {
+            left.int_value |= right.int_value;
+        } else {
+            left = binop_expr(left, right, optoken.token_type == TOKEN_KW_OR ? BINOP_OR : BINOP_ORSC);
+        }
+    }
+    return left;
 }
 
 // XOR
