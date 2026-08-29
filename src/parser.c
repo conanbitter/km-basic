@@ -279,6 +279,20 @@ static ExprResult expr13() {
         expect(TOKEN_RPAREN);
         return result;
 
+    case TOKEN_KW_TRUE:
+        result.data_type = TYPE_INT;
+        result.is_literal = true;
+        result.int_value = KM_TRUE;
+        NEXT;
+        return result;
+
+    case TOKEN_KW_FALSE:
+        result.data_type = TYPE_INT;
+        result.is_literal = true;
+        result.int_value = KM_FALSE;
+        NEXT;
+        return result;
+
     default:
         unexpected();
         break;
@@ -498,7 +512,7 @@ static const ExprOpType comp_ops_float[] = { BINOP_FEQ, BINOP_FNEQ, BINOP_FGT, B
 static ExprResult expr4() {
     ExprResult left = expr5();
 
-    while (token.token_type >= TOKEN_EQ || token.token_type <= TOKEN_LSEQ)
+    while (token.token_type >= TOKEN_EQ && token.token_type <= TOKEN_LSEQ)
     {
         Token optoken = token;
         NEXT;
