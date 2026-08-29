@@ -237,7 +237,7 @@ static ExprResult unop_expr(ExprResult operand, ExprOpType optype) {
 
 // EXPRESSIONS
 
-static ExprResult expr();
+static ExprResult expr0();
 
 static ExprResult expr13() {
     ExprResult result;
@@ -278,7 +278,7 @@ static ExprResult expr13() {
 
     case TOKEN_LPAREN:
         expect(TOKEN_LPAREN);
-        result = expr();
+        result = expr0();
         expect(TOKEN_RPAREN);
         return result;
 
@@ -659,7 +659,7 @@ static ExprResult expr1() {
 }
 
 // XOR
-static ExprResult expr() {
+static ExprResult expr0() {
     ExprResult left = expr1();
 
     while (token.token_type == TOKEN_KW_XOR)
@@ -679,6 +679,10 @@ static ExprResult expr() {
     return left;
 }
 
+static TreeNode* expr() {
+    return as_node(expr0());
+}
+
 #pragma endregion
 
 void parse(char* _buffer, char* _buffer_end) {
@@ -686,9 +690,7 @@ void parse(char* _buffer, char* _buffer_end) {
     buffer_end = _buffer_end;
     work_data = buffer + sizeof(DictHeader);
     NEXT;
-    ExprResult res = expr();
-    TreeNode* res_node = as_node(res);
-    printf("Root = %d\n", (uintptr_t)res_node - (uintptr_t)buffer_end);
+    TreeNode* res = expr();
+    printf("Root = %d\n", (uintptr_t)res - (uintptr_t)buffer_end);
     debug_print_tree(buffer_end, _buffer_end);
 }
-
