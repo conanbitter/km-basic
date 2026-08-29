@@ -9,6 +9,7 @@ typedef enum NodeType {
     NODE_INTLIT,
     NODE_FLOATLIT,
     NODE_LOAD,
+    NODE_STRLIT,
 } NodeType;
 
 typedef enum ExprOpType {

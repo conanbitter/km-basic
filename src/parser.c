@@ -147,6 +147,9 @@ static TreeNode* as_node(ExprResult res) {
         node->node_type = NODE_FLOATLIT;
         node->floatlit = res.float_value;
         break;
+    case TYPE_STRING:
+        node->node_type = NODE_STRLIT;
+        break;
     }
 
     return node;
@@ -478,7 +481,19 @@ static ExprResult expr7() {
 
 // &
 static ExprResult expr6() {
-    return expr7();
+    ExprResult left = expr7();
+
+    while (token.token_type == TOKEN_CONCAT)
+    {
+        Token optoken = token;
+        NEXT;
+        ExprResult right = expr7();
+
+        check_and_cast(&left, &right, TYPE_STRING, TYPE_STRING, &optoken);
+
+        left = binop_expr(left, right, BINOP_CONCAT);
+    }
+    return left;
 }
 
 // << >>

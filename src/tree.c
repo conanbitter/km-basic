@@ -68,6 +68,10 @@ void debug_print_tree(char* start, char* end) {
             printf("intlit    %" PRIkmINT "\n", cur->intlit);
             break;
 
+        case NODE_STRLIT:
+            printf("strlit\n");
+            break;
+
         case NODE_LOAD:
             printf("load %s  %" PRIuPTR "\n", cur->load.is_local ? "loc" : "glb", cur->load.offset);
             break;
