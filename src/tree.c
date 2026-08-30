@@ -75,6 +75,10 @@ void debug_print_tree(char* start, char* end) {
         case NODE_LOAD:
             printf("load %s  %" PRIuPTR "\n", cur->load.is_local ? "loc" : "glb", cur->load.offset);
             break;
+
+        case NODE_DUMMY:
+            printf("dummy\n");
+            break;
         }
         cur++;
     }

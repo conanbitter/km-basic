@@ -5,6 +5,8 @@
 #include "stdbool.h"
 
 typedef enum NodeType {
+    NODE_DUMMY,
+
     NODE_EXPROP,
     NODE_INTLIT,
     NODE_FLOATLIT,

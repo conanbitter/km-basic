@@ -125,11 +125,55 @@ static void float2int(ExprResult* res) {
 }
 
 static void type_cast(ExprResult* res, DataType target_type) {
-    if (res->data_type == TYPE_INT && target_type == TYPE_FLOAT) {
-        int2float(res);
-    }
-    if (res->data_type == TYPE_FLOAT && target_type == TYPE_INT) {
-        float2int(res);
+    switch (target_type)
+    {
+    case TYPE_INT:
+        switch (res->data_type)
+        {
+        case TYPE_FLOAT:
+            float2int(res);
+            break;
+        case TYPE_STRING:
+            res->data_type = TYPE_STRING;
+            res->is_literal = false;
+            res->node = add_node();
+            res->node->node_type = NODE_DUMMY;
+            break;
+        }
+        break;
+
+    case TYPE_FLOAT:
+        switch (res->data_type)
+        {
+        case TYPE_INT:
+            int2float(res);
+            break;
+        case TYPE_STRING:
+            res->data_type = TYPE_STRING;
+            res->is_literal = false;
+            res->node = add_node();
+            res->node->node_type = NODE_DUMMY;
+            break;
+        }
+        break;
+
+    case TYPE_STRING:
+        switch (res->data_type)
+        {
+        case TYPE_INT:
+            res->data_type = TYPE_INT;
+            res->is_literal = false;
+            res->node = add_node();
+            res->node->node_type = NODE_DUMMY;
+            break;
+        case TYPE_FLOAT:
+            res->data_type = TYPE_FLOAT;
+            res->is_literal = false;
+            res->node = add_node();
+            res->node->node_type = NODE_DUMMY;
+            break;
+        }
+        break;
     }
 }
 
