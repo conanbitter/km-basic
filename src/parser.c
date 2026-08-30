@@ -134,7 +134,7 @@ static void type_cast(ExprResult* res, DataType target_type) {
             float2int(res);
             break;
         case TYPE_STRING:
-            res->data_type = TYPE_STRING;
+            res->data_type = TYPE_INT;
             res->is_literal = false;
             res->node = add_node();
             res->node->node_type = NODE_DUMMY;
@@ -149,7 +149,7 @@ static void type_cast(ExprResult* res, DataType target_type) {
             int2float(res);
             break;
         case TYPE_STRING:
-            res->data_type = TYPE_STRING;
+            res->data_type = TYPE_FLOAT;
             res->is_literal = false;
             res->node = add_node();
             res->node->node_type = NODE_DUMMY;
@@ -161,13 +161,13 @@ static void type_cast(ExprResult* res, DataType target_type) {
         switch (res->data_type)
         {
         case TYPE_INT:
-            res->data_type = TYPE_INT;
+            res->data_type = TYPE_STRING;
             res->is_literal = false;
             res->node = add_node();
             res->node->node_type = NODE_DUMMY;
             break;
         case TYPE_FLOAT:
-            res->data_type = TYPE_FLOAT;
+            res->data_type = TYPE_STRING;
             res->is_literal = false;
             res->node = add_node();
             res->node->node_type = NODE_DUMMY;
@@ -338,6 +338,30 @@ static ExprResult expr13() {
         result.is_literal = true;
         result.int_value = KM_FALSE;
         NEXT;
+        return result;
+
+    case TOKEN_KW_CINT:
+        NEXT;
+        expect(TOKEN_LPAREN);
+        result = expr0();
+        expect(TOKEN_RPAREN);
+        type_cast(&result, TYPE_INT);
+        return result;
+
+    case TOKEN_KW_CFLOAT:
+        NEXT;
+        expect(TOKEN_LPAREN);
+        result = expr0();
+        expect(TOKEN_RPAREN);
+        type_cast(&result, TYPE_FLOAT);
+        return result;
+
+    case TOKEN_KW_CSTR:
+        NEXT;
+        expect(TOKEN_LPAREN);
+        result = expr0();
+        expect(TOKEN_RPAREN);
+        type_cast(&result, TYPE_STRING);
         return result;
 
     default:

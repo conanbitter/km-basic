@@ -1,1 +1,1 @@
-A + 4.6
+cstr(A#) & cstr(B)
