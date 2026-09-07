@@ -16,11 +16,13 @@ typedef double KmFloat;
 typedef int32_t KmInt;
 typedef float KmFloat;
 
-#define PRIkmINT PRIu32;
+#define PRIkmINT PRIu32
 
 #else
 #error "Unknown architecture"
 #endif
+
+#define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
 typedef enum DataType {
     TYPE_INT = 1,

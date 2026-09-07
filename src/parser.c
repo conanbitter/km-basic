@@ -2,17 +2,11 @@
 #include "lexer.h"
 #include "parser.h"
 #include "tree.h"
+#include "dict.h"
 
 #include <stdbool.h>
 #include <stdalign.h>
 #include <math.h>
-
-#define MAX(a, b) (((a) > (b)) ? (a) : (b))
-
-typedef struct DictHeader {
-    struct DictHeader* prev;
-    uint32_t hash;
-} DictHeader;
 
 typedef struct ExprResult {
     DataType data_type;
@@ -24,55 +18,11 @@ typedef struct ExprResult {
     };
 } ExprResult;
 
-static char* buffer;
-static char* buffer_end;
-static char* work_data;
-static DictHeader* prev = NULL;
+Dictionary dict;
 
-#define NEXT next_token(work_data, buffer_end)
-#define LENGTH_MASK (1<<15-1)
-#define STRING_FLAG (1<<15)
-
-const uintptr_t ptr_alignment = _Alignof(KmInt);
-
-#pragma region Dictionary
-
-static char* align_ptr(char* ptr) {
-    uintptr_t intptr = (uintptr_t)ptr;
-    uintptr_t result = (intptr + ptr_alignment - 1) & ~(ptr_alignment - 1);
-    return (char*)result;
-}
-
-static uint32_t get_hash(const char* text, size_t length, bool is_string) {
-    uint32_t hash = 0;
-    if (is_string) hash |= STRING_FLAG;            // 1  bit  - string literal flag
-    hash |= (length & LENGTH_MASK) << 16;          // 15 bits - text length
-    hash |= (uint32_t)(*text) << 8;                // 8  bits - first character
-    hash |= (uint32_t)(*(text + length - 1)) << 8; // 8  bits - second character
-    return hash;
-}
-
-static void emplace_string(size_t length) {
-    DictHeader* current = (DictHeader*)buffer;
-    current->prev = prev;
-    current->hash = get_hash(work_data, length, true);
-    prev = current;
-    buffer = align_ptr(buffer + sizeof(DictHeader) + length);
-    work_data = buffer + sizeof(DictHeader);
-}
-
-#pragma endregion
+#define NEXT next_token(dict.temp, dict.tail)
 
 #pragma region Parser service functions
-
-static TreeNode* add_node() {
-    if ((buffer_end - sizeof(TreeNode)) <= buffer) {
-        printf("Run out of memory");
-        exit(1);
-    }
-    buffer_end -= sizeof(TreeNode);
-    return (TreeNode*)buffer_end;
-}
 
 static void expect(TokenType token_type) {
     if (token.token_type == token_type) {
@@ -99,7 +49,7 @@ static void int2float(ExprResult* res) {
     if (res->is_literal) {
         res->float_value = res->int_value;
     } else {
-        TreeNode* node = add_node();
+        TreeNode* node = dict_add_node(&dict);
         node->node_type = NODE_EXPROP;
         node->exprop.op = UNOP_ITOF;
         node->exprop.left = res->node;
@@ -114,7 +64,7 @@ static void float2int(ExprResult* res) {
     if (res->is_literal) {
         res->int_value = res->float_value;
     } else {
-        TreeNode* node = add_node();
+        TreeNode* node = dict_add_node(&dict);
         node->node_type = NODE_EXPROP;
         node->exprop.op = UNOP_FTOI;
         node->exprop.left = res->node;
@@ -136,7 +86,7 @@ static void type_cast(ExprResult* res, DataType target_type) {
         case TYPE_STRING:
             res->data_type = TYPE_INT;
             res->is_literal = false;
-            res->node = add_node();
+            res->node = dict_add_node(&dict);
             res->node->node_type = NODE_DUMMY;
             break;
         }
@@ -151,7 +101,7 @@ static void type_cast(ExprResult* res, DataType target_type) {
         case TYPE_STRING:
             res->data_type = TYPE_FLOAT;
             res->is_literal = false;
-            res->node = add_node();
+            res->node = dict_add_node(&dict);
             res->node->node_type = NODE_DUMMY;
             break;
         }
@@ -163,13 +113,13 @@ static void type_cast(ExprResult* res, DataType target_type) {
         case TYPE_INT:
             res->data_type = TYPE_STRING;
             res->is_literal = false;
-            res->node = add_node();
+            res->node = dict_add_node(&dict);
             res->node->node_type = NODE_DUMMY;
             break;
         case TYPE_FLOAT:
             res->data_type = TYPE_STRING;
             res->is_literal = false;
-            res->node = add_node();
+            res->node = dict_add_node(&dict);
             res->node->node_type = NODE_DUMMY;
             break;
         }
@@ -180,7 +130,7 @@ static void type_cast(ExprResult* res, DataType target_type) {
 static TreeNode* as_node(ExprResult res) {
     if (!res.is_literal) return res.node;
 
-    TreeNode* node = add_node();
+    TreeNode* node = dict_add_node(&dict);
     switch (res.data_type)
     {
     case TYPE_INT:
@@ -254,7 +204,7 @@ static void check_unary(ExprResult* operand, DataType in_types, Token* optoken) 
 }
 
 static ExprResult binop_expr(ExprResult left, ExprResult right, ExprOpType optype) {
-    TreeNode* node = add_node();
+    TreeNode* node = dict_add_node(&dict);
     node->node_type = NODE_EXPROP;
     node->exprop.op = optype;
     node->exprop.left = as_node(left);
@@ -267,7 +217,7 @@ static ExprResult binop_expr(ExprResult left, ExprResult right, ExprOpType optyp
 }
 
 static ExprResult unop_expr(ExprResult operand, ExprOpType optype) {
-    TreeNode* node = add_node();
+    TreeNode* node = dict_add_node(&dict);
     node->node_type = NODE_EXPROP;
     node->exprop.op = optype;
     node->exprop.left = as_node(operand);
@@ -305,15 +255,15 @@ static ExprResult expr13() {
         result.data_type = TYPE_STRING;
         result.is_literal = true;
         //result.pointer = buffer;
-        emplace_string(token.length);
+        dict_emplace(&dict, token.length, DICT_STRLIT);
         NEXT;
         return result;
 
     case TOKEN_ID:
-        char suffix = *(work_data + token.length - 1);
+        char suffix = *(dict.temp + token.length - 1);
         result.data_type = suffix == '#' ? TYPE_FLOAT : TYPE_INT;
         result.is_literal = false;
-        result.node = add_node();
+        result.node = dict_add_node(&dict);
         result.node->node_type = NODE_LOAD;
         result.node->load.is_local = false;
         result.node->load.offset = 0;
@@ -651,7 +601,7 @@ static ExprResult expr4() {
                 }
             }
         } else {
-            DataType op_type = left.data_type == TYPE_INT ?
+            ExprOpType op_type = left.data_type == TYPE_INT ?
                 comp_ops_int[optoken.token_type - TOKEN_EQ] :
                 comp_ops_float[optoken.token_type - TOKEN_EQ];
 
@@ -753,12 +703,10 @@ static TreeNode* expr() {
 
 #pragma endregion
 
-void parse(char* _buffer, char* _buffer_end) {
-    buffer = _buffer;
-    buffer_end = _buffer_end;
-    work_data = buffer + sizeof(DictHeader);
+void parse(char* buffer, char* buffer_end) {
+    dict_init(&dict, buffer, buffer_end);
     NEXT;
     TreeNode* res = expr();
-    printf("Root = %d\n", (uintptr_t)res - (uintptr_t)buffer_end);
-    debug_print_tree(buffer_end, _buffer_end);
+    printf("Root = %d\n", (uintptr_t)res - (uintptr_t)(dict.tail));
+    debug_print_tree(dict.tail, dict.end);
 }
