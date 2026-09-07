@@ -73,6 +73,7 @@ struct TreeNode
         ExprOpData exprop;
         KmInt intlit;
         KmFloat floatlit;
+        char* strlit;
         LoadData load;
         TreeNode* child;
     };

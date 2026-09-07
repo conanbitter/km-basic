@@ -1,6 +1,8 @@
 #include "tree.h"
-#include "stdio.h"
-#include "inttypes.h"
+#include "dict.h"
+#include <stdio.h>
+#include <inttypes.h>
+
 
 static const char* opstr[] = {
     "I^ ",
@@ -69,7 +71,8 @@ void debug_print_tree(char* start, char* end) {
             break;
 
         case NODE_STRLIT:
-            printf("strlit\n");
+            int length = ((DictHeader*)(cur->strlit) - 1)->text_len;
+            printf("strlit    0x%"PRIXPTR" \"%.*s\"\n", (uintptr_t)cur->strlit, length, cur->strlit);
             break;
 
         case NODE_LOAD:
