@@ -29,6 +29,20 @@ void dict_emplace(Dictionary* dict, size_t length, DictEntryType entry_type) {
     dict->temp = dict->current + sizeof(DictHeader);
 }
 
+static char* get_body(DictHeader* header) {
+    return (char*)header + header->text_len + header->padding;
+}
+
+char* dict_allot(Dictionary* dict, size_t size) {
+    if ((dict->current + size) >= dict->tail) {
+        printf("Run out of memory");
+        exit(1);
+    }
+    char* body = dict->current;
+    dict->current += size;
+    return body;
+}
+
 TreeNode* dict_add_node(Dictionary* dict) {
     if ((dict->tail - sizeof(TreeNode)) <= dict->current) {
         printf("Run out of memory");
