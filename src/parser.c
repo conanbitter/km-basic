@@ -14,7 +14,6 @@ typedef struct ExprResult {
     union {
         KmInt int_value;
         KmFloat float_value;
-        char* str_value;
         TreeNode* node;
     };
 } ExprResult;
@@ -142,10 +141,6 @@ static TreeNode* as_node(ExprResult res) {
         node->node_type = NODE_FLOATLIT;
         node->floatlit = res.float_value;
         break;
-    case TYPE_STRING:
-        node->node_type = NODE_STRLIT;
-        //node->strlit = res.str_value;
-        break;
     }
 
     return node;
@@ -255,9 +250,8 @@ static ExprResult expr13() {
 
     case TOKEN_STRLIT:
         result.data_type = TYPE_STRING;
-        result.is_literal = true;
-        //result.str_value = block.temp;
-        //mem_emplace(&block, token.length, DICT_STRLIT);
+        result.is_literal = false;
+        result.node = mem_strlit_node(&block, token.length);
         NEXT;
         return result;
 

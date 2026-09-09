@@ -30,6 +30,9 @@ typedef struct MemBlock {
     // Nametable data
     char* temp;
     NameHeader* prev;
+
+    // Tree data
+    TreeNode* last_strlit;
 } MemBlock;
 
 typedef struct GlobalVarBody {
@@ -47,6 +50,7 @@ typedef struct LocalVarBody {
 void mem_init(MemBlock* dict, char* buffer, char* buffer_end);
 void mem_emplace(MemBlock* dict, size_t length, NameEntryType entry_type);
 TreeNode* mem_add_node(MemBlock* dict);
+TreeNode* mem_strlit_node(MemBlock* dict, size_t length);
 char* mem_allot(MemBlock* dict, size_t size);
 
 #endif

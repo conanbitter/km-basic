@@ -1,6 +1,8 @@
 #include "common.h"
 #include "memblock.h"
 
+#include <string.h>
+
 const uintptr_t ptr_alignment = _Alignof(KmInt);
 
 static char* align_ptr(char* ptr) {
@@ -9,13 +11,14 @@ static char* align_ptr(char* ptr) {
     return (char*)result;
 }
 
-void mem_init(MemBlock* dict, char* buffer, char* buffer_end) {
-    dict->begin = buffer;
-    dict->end = buffer_end;
-    dict->current = buffer;
-    dict->tail = buffer_end;
-    dict->temp = buffer + sizeof(NameHeader);
-    dict->prev = NULL;
+void mem_init(MemBlock* block, char* buffer, char* buffer_end) {
+    block->begin = buffer;
+    block->end = buffer_end;
+    block->current = buffer;
+    block->tail = buffer_end;
+    block->temp = buffer + sizeof(NameHeader);
+    block->prev = NULL;
+    block->last_strlit = NULL;
 }
 
 void mem_emplace(MemBlock* dict, size_t length, NameEntryType entry_type) {
@@ -50,4 +53,26 @@ TreeNode* mem_add_node(MemBlock* dict) {
     }
     dict->tail -= sizeof(TreeNode);
     return (TreeNode*)dict->tail;
+}
+
+TreeNode* mem_strlit_node(MemBlock* block, size_t length) {
+    uint16_t aligned_length = ALIGN_UP(length);
+
+    if ((block->tail - sizeof(TreeNode) - aligned_length) <= block->current) {
+        printf("Run out of memory");
+        exit(1);
+    }
+
+    char* dest = block->tail - aligned_length;
+    memmove(dest, block->temp, length);
+    block->tail -= sizeof(TreeNode) + aligned_length;
+
+    TreeNode* node = (TreeNode*)block->tail;
+    node->node_type = NODE_STRLIT;
+    node->strlit.length = length;
+    node->strlit.prev = block->last_strlit;
+    node->strlit.hash = 0;
+    block->last_strlit = node;
+
+    return node;
 }
