@@ -73,7 +73,7 @@ void debug_print_tree(char* start, char* end) {
         case NODE_STRLIT:
             char* string = (char*)(cur + 1);
             uint16_t length = cur->strlit.length;
-            printf("strlit    \"%.*s\"\n", length, string);
+            printf("strlit    \"%.*s\" (hash: %04X)\n", length, string, cur->strlit.hash);
             cur = (TreeNode*)((char*)(cur + 1) + ALIGN_UP(length)) - 1;
             break;
 
