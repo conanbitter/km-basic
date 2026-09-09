@@ -9,7 +9,7 @@ set(INCLUDE_FILES
     lexer.h
     parser.h
     tree.h
-    dict.h
+    memblock.h
 )
 
 set(SRC_FILES
@@ -18,7 +18,7 @@ set(SRC_FILES
     lexer.c
     parser.c
     tree.c
-    dict.c
+    memblock.c
 )
 
 list(TRANSFORM INCLUDE_FILES PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/include/)

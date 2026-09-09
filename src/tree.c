@@ -1,5 +1,5 @@
 #include "tree.h"
-#include "dict.h"
+#include "memblock.h"
 #include <stdio.h>
 #include <inttypes.h>
 

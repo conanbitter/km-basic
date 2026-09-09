@@ -1,5 +1,5 @@
 #include "common.h"
-#include "dict.h"
+#include "memblock.h"
 
 const uintptr_t ptr_alignment = _Alignof(KmInt);
 

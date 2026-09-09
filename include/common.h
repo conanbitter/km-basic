@@ -10,6 +10,7 @@ typedef int64_t KmInt;
 typedef double KmFloat;
 
 #define PRIkmINT PRIi64
+#define BYTE_ALIGN (8)
 
 #elif INTPTR_MAX == INT32_MAX
 
@@ -17,6 +18,7 @@ typedef int32_t KmInt;
 typedef float KmFloat;
 
 #define PRIkmINT PRIu32
+#define BYTE_ALIGN (4)
 
 #else
 #error "Unknown architecture"

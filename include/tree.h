@@ -67,6 +67,12 @@ typedef struct LoadData {
     bool is_local;
 } LoadData;
 
+typedef struct StrLitData {
+    TreeNode* prev;
+    uint16_t length;
+    uint16_t hash;
+}
+
 struct TreeNode
 {
     union {

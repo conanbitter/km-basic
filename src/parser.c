@@ -2,7 +2,7 @@
 #include "lexer.h"
 #include "parser.h"
 #include "tree.h"
-#include "dict.h"
+#include "memblock.h"
 
 #include <stdbool.h>
 #include <stdalign.h>

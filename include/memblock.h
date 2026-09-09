@@ -1,5 +1,5 @@
-#ifndef DICT_H
-#define DICT_H
+#ifndef MEMBLOCK_H
+#define MEMBLOCK_H
 
 #include "tree.h"
 #include <stdint.h>
