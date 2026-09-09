@@ -25,6 +25,7 @@ typedef float KmFloat;
 #endif
 
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
+#define ALIGN_UP(val) (((val) + (BYTE_ALIGN - 1)) & ~(BYTE_ALIGN - 1))
 
 typedef enum DataType {
     TYPE_INT = 1,

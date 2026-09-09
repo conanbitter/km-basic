@@ -71,15 +71,14 @@ typedef struct StrLitData {
     TreeNode* prev;
     uint16_t length;
     uint16_t hash;
-}
+} StrLitData;
 
-struct TreeNode
-{
+struct TreeNode {
     union {
         ExprOpData exprop;
         KmInt intlit;
         KmFloat floatlit;
-        char* strlit;
+        StrLitData strlit;
         LoadData load;
         TreeNode* child;
     };

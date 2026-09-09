@@ -4,7 +4,7 @@
 #include "lexer.h"
 #include "parser.h"
 #include "tree.h"
-#include "dict.h"
+#include "memblock.h"
 
 #define BUFFER_SIZE (1024)
 

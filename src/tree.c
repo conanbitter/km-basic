@@ -71,8 +71,9 @@ void debug_print_tree(char* start, char* end) {
             break;
 
         case NODE_STRLIT:
-            int length = ((DictHeader*)(cur->strlit) - 1)->text_len;
-            printf("strlit    0x%"PRIXPTR" \"%.*s\"\n", (uintptr_t)cur->strlit, length, cur->strlit);
+            //int length = ((NameHeader*)(cur->strlit) - 1)->text_len;
+            //printf("strlit    0x%"PRIXPTR" \"%.*s\"\n", (uintptr_t)cur->strlit, length, cur->strlit);
+            printf("strlit\n");
             break;
 
         case NODE_LOAD:

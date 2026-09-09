@@ -9,31 +9,31 @@ static char* align_ptr(char* ptr) {
     return (char*)result;
 }
 
-void dict_init(Dictionary* dict, char* buffer, char* buffer_end) {
+void mem_init(MemBlock* dict, char* buffer, char* buffer_end) {
     dict->begin = buffer;
     dict->end = buffer_end;
     dict->current = buffer;
     dict->tail = buffer_end;
-    dict->temp = buffer + sizeof(DictHeader);
+    dict->temp = buffer + sizeof(NameHeader);
     dict->prev = NULL;
 }
 
-void dict_emplace(Dictionary* dict, size_t length, DictEntryType entry_type) {
-    DictHeader* entry = (DictHeader*)dict->current;
-    dict->current = align_ptr(dict->current + sizeof(DictHeader) + length);
+void mem_emplace(MemBlock* dict, size_t length, NameEntryType entry_type) {
+    NameHeader* entry = (NameHeader*)dict->current;
+    dict->current = align_ptr(dict->current + sizeof(NameHeader) + length);
     entry->prev = dict->prev;
     entry->text_len = length;
     entry->padding = dict->current - (char*)entry;
     entry->entry_type = entry_type;
     dict->prev = entry;
-    dict->temp = dict->current + sizeof(DictHeader);
+    dict->temp = dict->current + sizeof(NameHeader);
 }
 
-static char* get_body(DictHeader* header) {
+static char* get_body(NameHeader* header) {
     return (char*)header + header->text_len + header->padding;
 }
 
-char* dict_allot(Dictionary* dict, size_t size) {
+char* mem_allot(MemBlock* dict, size_t size) {
     if ((dict->current + size) >= dict->tail) {
         printf("Run out of memory");
         exit(1);
@@ -43,7 +43,7 @@ char* dict_allot(Dictionary* dict, size_t size) {
     return body;
 }
 
-TreeNode* dict_add_node(Dictionary* dict) {
+TreeNode* mem_add_node(MemBlock* dict) {
     if ((dict->tail - sizeof(TreeNode)) <= dict->current) {
         printf("Run out of memory");
         exit(1);
