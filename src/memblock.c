@@ -1,3 +1,39 @@
+/*
+
+MEMORY LAYOUT
+
+During parsing:
+
+      [Block start]
+  ---------------------
+       Name table
+  ---------------------
+      [Free space]
+  ---------------------
+       Tree nodes
+  (and string literals)
+  ---------------------
+       [Block end]
+
+During execution:
+
+      [Block start]
+  ---------------------
+      Strings Arena
+  ---------------------
+      [Free space]
+  ---------------------
+       Call frames
+  ---------------------
+    Global variables
+  ---------------------
+       Tree nodes
+  (and string literals)
+  ---------------------
+       [Block end]
+
+*/
+
 #include "common.h"
 #include "memblock.h"
 
