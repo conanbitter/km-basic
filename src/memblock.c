@@ -3,12 +3,30 @@
 
 #include <string.h>
 
+#define FNV_PRIME 16777619U
+#define FNV_OFFSET_BASIS 2166136261U
+
 const uintptr_t ptr_alignment = _Alignof(KmInt);
 
 static char* align_ptr(char* ptr) {
     uintptr_t intptr = (uintptr_t)ptr;
     uintptr_t result = (intptr + ptr_alignment - 1) & ~(ptr_alignment - 1);
     return (char*)result;
+}
+
+static uint16_t string_hash(const char* string, size_t length) {
+    // FNV-1a hashing with folding to 16 bit
+
+    uint32_t hash = FNV_OFFSET_BASIS;
+
+    while (length > 0) {
+        hash ^= (uint32_t)(unsigned char)(*string);
+        hash *= FNV_PRIME;
+        string++;
+        length--;
+    }
+
+    return (uint16_t)((hash >> 16) ^ (hash & 0xFFFFU));
 }
 
 void mem_init(MemBlock* block, char* buffer, char* buffer_end) {
@@ -56,6 +74,21 @@ TreeNode* mem_add_node(MemBlock* dict) {
 }
 
 TreeNode* mem_strlit_node(MemBlock* block, size_t length) {
+    uint16_t new_hash = string_hash(block->temp, length);
+
+    // duplicate elimination
+    TreeNode* cur = block->last_strlit;
+    while (cur != NULL)
+    {
+        if (cur->strlit.length == length && cur->strlit.hash == new_hash) {
+            char* old_string = (char*)(cur + 1);
+            if (memcmp(block->temp, old_string, length) == 0) {
+                return cur;
+            }
+        }
+        cur = cur->strlit.prev;
+    }
+
     uint16_t aligned_length = ALIGN_UP(length);
 
     if ((block->tail - sizeof(TreeNode) - aligned_length) <= block->current) {
@@ -71,7 +104,7 @@ TreeNode* mem_strlit_node(MemBlock* block, size_t length) {
     node->node_type = NODE_STRLIT;
     node->strlit.length = length;
     node->strlit.prev = block->last_strlit;
-    node->strlit.hash = 0;
+    node->strlit.hash = new_hash;
     block->last_strlit = node;
 
     return node;

@@ -1,1 +1,1 @@
-"cstr(A#)" & "cstr(B)"
+"cstr(A#)" & "cstr(A#)"
