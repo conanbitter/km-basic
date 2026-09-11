@@ -35,17 +35,10 @@ typedef struct MemBlock {
     TreeNode* last_strlit;
 } MemBlock;
 
-typedef struct GlobalVarBody {
+typedef struct VarBody {
     uintptr_t offset;
     DataType value_type;
 } GlobalVarBody;
-
-typedef struct LocalVarBody {
-    uintptr_t offset;
-    DataType value_type;
-    TreeNode* fn_id;
-    bool is_ref;
-} LocalVarBody;
 
 void mem_init(MemBlock* dict, char* buffer, char* buffer_end);
 void mem_emplace(MemBlock* dict, size_t length, NameEntryType entry_type);

@@ -30,8 +30,17 @@ typedef float KmFloat;
 typedef enum DataType {
     TYPE_INT = 1,
     TYPE_FLOAT = 1 << 1,
-    TYPE_STRING = 1 << 2
+    TYPE_STRING = 1 << 2,
+
+    TYPE_REF = 1 << 7
 } DataType;
+
+typedef union KmValue {
+    KmInt int_val;
+    KmFloat float_val;
+    char* str_val;
+} KmValue;
+
 
 const KmInt KM_TRUE;
 const KmInt KM_FALSE;
