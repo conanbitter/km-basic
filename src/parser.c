@@ -18,9 +18,7 @@ typedef struct ExprResult {
     };
 } ExprResult;
 
-MemBlock block;
-
-#define NEXT next_token(block.temp, block.tail)
+#define NEXT next_token(mem_temp, mem_free_end)
 
 #pragma region Parser service functions
 
@@ -49,7 +47,7 @@ static void int2float(ExprResult* res) {
     if (res->is_literal) {
         res->float_value = res->int_value;
     } else {
-        TreeNode* node = mem_add_node(&block);
+        TreeNode* node = mem_add_node();
         node->node_type = NODE_EXPROP;
         node->exprop.op = UNOP_ITOF;
         node->exprop.left = res->node;
@@ -64,7 +62,7 @@ static void float2int(ExprResult* res) {
     if (res->is_literal) {
         res->int_value = res->float_value;
     } else {
-        TreeNode* node = mem_add_node(&block);
+        TreeNode* node = mem_add_node();
         node->node_type = NODE_EXPROP;
         node->exprop.op = UNOP_FTOI;
         node->exprop.left = res->node;
@@ -86,7 +84,7 @@ static void type_cast(ExprResult* res, DataType target_type) {
         case TYPE_STRING:
             res->data_type = TYPE_INT;
             res->is_literal = false;
-            res->node = mem_add_node(&block);
+            res->node = mem_add_node();
             res->node->node_type = NODE_DUMMY;
             break;
         }
@@ -101,7 +99,7 @@ static void type_cast(ExprResult* res, DataType target_type) {
         case TYPE_STRING:
             res->data_type = TYPE_FLOAT;
             res->is_literal = false;
-            res->node = mem_add_node(&block);
+            res->node = mem_add_node();
             res->node->node_type = NODE_DUMMY;
             break;
         }
@@ -113,13 +111,13 @@ static void type_cast(ExprResult* res, DataType target_type) {
         case TYPE_INT:
             res->data_type = TYPE_STRING;
             res->is_literal = false;
-            res->node = mem_add_node(&block);
+            res->node = mem_add_node();
             res->node->node_type = NODE_DUMMY;
             break;
         case TYPE_FLOAT:
             res->data_type = TYPE_STRING;
             res->is_literal = false;
-            res->node = mem_add_node(&block);
+            res->node = mem_add_node();
             res->node->node_type = NODE_DUMMY;
             break;
         }
@@ -130,7 +128,7 @@ static void type_cast(ExprResult* res, DataType target_type) {
 static TreeNode* as_node(ExprResult res) {
     if (!res.is_literal) return res.node;
 
-    TreeNode* node = mem_add_node(&block);
+    TreeNode* node = mem_add_node();
     switch (res.data_type)
     {
     case TYPE_INT:
@@ -201,7 +199,7 @@ static void check_unary(ExprResult* operand, DataType in_types, Token* optoken) 
 }
 
 static ExprResult binop_expr(ExprResult left, ExprResult right, ExprOpType optype) {
-    TreeNode* node = mem_add_node(&block);
+    TreeNode* node = mem_add_node();
     node->node_type = NODE_EXPROP;
     node->exprop.op = optype;
     node->exprop.left = as_node(left);
@@ -214,7 +212,7 @@ static ExprResult binop_expr(ExprResult left, ExprResult right, ExprOpType optyp
 }
 
 static ExprResult unop_expr(ExprResult operand, ExprOpType optype) {
-    TreeNode* node = mem_add_node(&block);
+    TreeNode* node = mem_add_node();
     node->node_type = NODE_EXPROP;
     node->exprop.op = optype;
     node->exprop.left = as_node(operand);
@@ -251,15 +249,15 @@ static ExprResult expr13() {
     case TOKEN_STRLIT:
         result.data_type = TYPE_STRING;
         result.is_literal = false;
-        result.node = mem_strlit_node(&block, token.length);
+        result.node = mem_strlit_node(token.length);
         NEXT;
         return result;
 
     case TOKEN_ID:
-        char suffix = *(block.temp + token.length - 1);
+        char suffix = *(mem_temp + token.length - 1);
         result.data_type = suffix == '#' ? TYPE_FLOAT : TYPE_INT;
         result.is_literal = false;
-        result.node = mem_add_node(&block);
+        result.node = mem_add_node();
         result.node->node_type = NODE_LOAD;
         result.node->load.is_local = false;
         result.node->load.offset = 0;
@@ -700,9 +698,9 @@ static TreeNode* expr() {
 #pragma endregion
 
 void parse(char* buffer, char* buffer_end) {
-    mem_init(&block, buffer, buffer_end);
+    mem_init(buffer, buffer_end);
     NEXT;
     TreeNode* res = expr();
-    printf("Root = %d\n", (uintptr_t)res - (uintptr_t)(block.tail));
-    debug_print_tree(block.tail, block.end);
+    printf("Root = %d\n", (uintptr_t)res - (uintptr_t)(mem_free_end));
+    debug_print_tree(mem_free_end, mem_end);
 }

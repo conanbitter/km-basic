@@ -20,30 +20,26 @@ typedef struct NameHeader {
     uint8_t entry_type;
 } NameHeader;
 
-typedef struct MemBlock {
-    char* begin;
-    char* end;
-
-    char* current;
-    char* tail;
-
-    // Nametable data
-    char* temp;
-    NameHeader* prev;
-
-    // Tree data
-    TreeNode* last_strlit;
-} MemBlock;
-
 typedef struct VarBody {
     uintptr_t offset;
     DataType value_type;
 } GlobalVarBody;
 
-void mem_init(MemBlock* dict, char* buffer, char* buffer_end);
-void mem_emplace(MemBlock* dict, size_t length, NameEntryType entry_type);
-TreeNode* mem_add_node(MemBlock* dict);
-TreeNode* mem_strlit_node(MemBlock* dict, size_t length);
-char* mem_allot(MemBlock* dict, size_t size);
+typedef struct ConstBody {
+    KmValue value;
+    DataType value_type;
+} ConstBody;
+
+extern char* mem_end;
+extern char* mem_free_end;
+extern char* mem_temp;
+
+void mem_init(char* buffer, char* buffer_end);
+void mem_emplace(size_t length, NameEntryType entry_type);
+TreeNode* mem_add_node();
+TreeNode* mem_strlit_node(size_t length);
+char* mem_alloc_size(size_t size);
+
+#define MEM_ALLOC(typename) (typename*)mem_alloc_size(sizeof(typename))
 
 #endif

@@ -44,6 +44,17 @@ During execution:
 
 const uintptr_t ptr_alignment = _Alignof(KmInt);
 
+char* mem_start;
+char* mem_end;
+
+char* mem_free_start;
+char* mem_free_end;
+
+char* mem_temp;
+NameHeader* name_prev;
+
+TreeNode* tree_last_strlit;
+
 static char* align_ptr(char* ptr) {
     uintptr_t intptr = (uintptr_t)ptr;
     uintptr_t result = (intptr + ptr_alignment - 1) & ~(ptr_alignment - 1);
@@ -65,60 +76,60 @@ static uint16_t string_hash(const char* string, size_t length) {
     return (uint16_t)((hash >> 16) ^ (hash & 0xFFFFU));
 }
 
-void mem_init(MemBlock* block, char* buffer, char* buffer_end) {
-    block->begin = buffer;
-    block->end = buffer_end;
-    block->current = buffer;
-    block->tail = buffer_end;
-    block->temp = buffer + sizeof(NameHeader);
-    block->prev = NULL;
-    block->last_strlit = NULL;
+void mem_init(char* buffer, char* buffer_end) {
+    mem_start = buffer;
+    mem_end = buffer_end;
+    mem_free_start = buffer;
+    mem_free_end = buffer_end;
+    mem_temp = buffer + sizeof(NameHeader);
+    name_prev = NULL;
+    tree_last_strlit = NULL;
 }
 
-void mem_emplace(MemBlock* dict, size_t length, NameEntryType entry_type) {
-    NameHeader* entry = (NameHeader*)dict->current;
-    dict->current = align_ptr(dict->current + sizeof(NameHeader) + length);
-    entry->prev = dict->prev;
+void mem_emplace(size_t length, NameEntryType entry_type) {
+    NameHeader* entry = (NameHeader*)mem_free_start;
+    mem_free_start = align_ptr(mem_free_start + sizeof(NameHeader) + length);
+    entry->prev = name_prev;
     entry->text_len = length;
-    entry->padding = dict->current - (char*)entry;
+    entry->padding = mem_free_start - (char*)entry;
     entry->entry_type = entry_type;
-    dict->prev = entry;
-    dict->temp = dict->current + sizeof(NameHeader);
+    name_prev = entry;
+    mem_temp = mem_free_start + sizeof(NameHeader);
 }
 
 static char* get_body(NameHeader* header) {
     return (char*)header + header->text_len + header->padding;
 }
 
-char* mem_allot(MemBlock* dict, size_t size) {
-    if ((dict->current + size) >= dict->tail) {
+char* mem_alloc_size(size_t size) {
+    if ((mem_free_start + size) >= mem_free_end) {
         printf("Run out of memory");
         exit(1);
     }
-    char* body = dict->current;
-    dict->current += size;
+    char* body = mem_free_start;
+    mem_free_start += size;
     return body;
 }
 
-TreeNode* mem_add_node(MemBlock* dict) {
-    if ((dict->tail - sizeof(TreeNode)) <= dict->current) {
+TreeNode* mem_add_node() {
+    if ((mem_free_end - sizeof(TreeNode)) <= mem_free_start) {
         printf("Run out of memory");
         exit(1);
     }
-    dict->tail -= sizeof(TreeNode);
-    return (TreeNode*)dict->tail;
+    mem_free_end -= sizeof(TreeNode);
+    return (TreeNode*)mem_free_end;
 }
 
-TreeNode* mem_strlit_node(MemBlock* block, size_t length) {
-    uint16_t new_hash = string_hash(block->temp, length);
+TreeNode* mem_strlit_node(size_t length) {
+    uint16_t new_hash = string_hash(mem_temp, length);
 
     // duplicate elimination
-    TreeNode* cur = block->last_strlit;
+    TreeNode* cur = tree_last_strlit;
     while (cur != NULL)
     {
         if (cur->strlit.length == length && cur->strlit.hash == new_hash) {
             char* old_string = (char*)(cur + 1);
-            if (memcmp(block->temp, old_string, length) == 0) {
+            if (memcmp(mem_temp, old_string, length) == 0) {
                 return cur;
             }
         }
@@ -127,21 +138,21 @@ TreeNode* mem_strlit_node(MemBlock* block, size_t length) {
 
     uint16_t aligned_length = ALIGN_UP(length);
 
-    if ((block->tail - sizeof(TreeNode) - aligned_length) <= block->current) {
+    if ((mem_free_end - sizeof(TreeNode) - aligned_length) <= mem_free_start) {
         printf("Run out of memory");
         exit(1);
     }
 
-    char* dest = block->tail - aligned_length;
-    memmove(dest, block->temp, length);
-    block->tail -= sizeof(TreeNode) + aligned_length;
+    char* dest = mem_free_end - aligned_length;
+    memmove(dest, mem_temp, length);
+    mem_free_end -= sizeof(TreeNode) + aligned_length;
 
-    TreeNode* node = (TreeNode*)block->tail;
+    TreeNode* node = (TreeNode*)mem_free_end;
     node->node_type = NODE_STRLIT;
     node->strlit.length = length;
-    node->strlit.prev = block->last_strlit;
+    node->strlit.prev = tree_last_strlit;
     node->strlit.hash = new_hash;
-    block->last_strlit = node;
+    tree_last_strlit = node;
 
     return node;
 }
