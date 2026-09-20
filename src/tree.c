@@ -44,6 +44,17 @@ static const char* opstr[] = {
     "F2I"
 };
 
+void tree_append(TreeNode** first_node, TreeNode** last_node, TreeNode* node) {
+    TreeNode* item = mem_add_node();
+    item->node_type = NODE_LISTITEM;
+    item->list.node = node;
+    item->list.next = NULL;
+
+    if (*last_node != NULL) (*last_node)->list.next = item;
+    *last_node = item;
+    if (*first_node == NULL) *first_node = item;
+}
+
 void debug_print_tree(char* start, char* end) {
     TreeNode* _end = (TreeNode*)end;
     TreeNode* cur = (TreeNode*)start;
@@ -79,6 +90,10 @@ void debug_print_tree(char* start, char* end) {
 
         case NODE_LOAD:
             printf("load %s  %" PRIuPTR "\n", cur->load.is_local ? "loc" : "glb", cur->load.offset);
+            break;
+
+        case NODE_LISTITEM:
+            printf("list      node %" PRIuPTR ", next %" PRIuPTR "\n", (uintptr_t)(cur->list.node) - _start, (uintptr_t)(cur->list.next) - _start);
             break;
 
         case NODE_DUMMY:

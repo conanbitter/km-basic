@@ -15,6 +15,8 @@ typedef enum NameEntryType {
 
 typedef struct NameHeader {
     struct NameHeader* prev;
+    uint16_t decl_line;
+    uint16_t decl_col;
     uint16_t text_len;
     uint8_t padding;
     uint8_t entry_type;
@@ -35,11 +37,15 @@ extern char* mem_free_end;
 extern char* mem_temp;
 
 void mem_init(char* buffer, char* buffer_end);
-void mem_emplace(size_t length, NameEntryType entry_type);
+
 TreeNode* mem_add_node();
 TreeNode* mem_strlit_node(size_t length);
-char* mem_alloc_size(size_t size);
 
-#define MEM_ALLOC(typename) (typename*)mem_alloc_size(sizeof(typename))
+void name_emplace(size_t length, NameEntryType entry_type, uint16_t decl_line, uint16_t decl_col);
+NameHeader* name_find(size_t length);
+void name_check_redecl(size_t length, int line, int col);
+char* name_alloc_size(size_t size);
+
+#define NAME_ALLOC(typename) (typename*)name_alloc_size(sizeof(typename))
 
 #endif

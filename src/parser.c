@@ -36,6 +36,15 @@ static void unexpected() {
     exit(1);
 }
 
+static DataType get_type_by_name(char* name, size_t name_len) {
+    switch (*(name + name_len - 1))
+    {
+    case '#': return TYPE_FLOAT;
+    case '$': return TYPE_STRING;
+    default: return TYPE_INT;
+    }
+}
+
 #pragma endregion
 
 #pragma region Expressions
@@ -697,10 +706,85 @@ static TreeNode* expr() {
 
 #pragma endregion
 
+#pragma region Statements
+
+static void stmt_const() {
+    int stmt_line = token.line;
+    int stmt_col = token.col;
+
+    expect(TOKEN_KW_CONST);
+
+    if (token.token_type != TOKEN_ID) unexpected();
+    name_check_redecl(token.length, stmt_line, stmt_col);
+    name_emplace(token.length, NAME_ENTRY_CONST, stmt_line, stmt_col);
+
+    ConstBody* body = NAME_ALLOC(ConstBody);
+    body->value_type = get_type_by_name(mem_temp, token.length);
+
+    expect(TOKEN_ID);
+    expect(TOKEN_EQ);
+
+    stmt_line = token.line;
+    stmt_col = token.col;
+    ExprResult value = expr0();
+    if (!value.is_literal) {
+        printf("[%d:%d] ERROR: Expression is not constant\n", stmt_line, stmt_col);
+        exit(1);
+    }
+    if (value.data_type != body->value_type) {
+        printf("[%d:%d] ERROR: Type mismatch. Constant have type %s, but expression have type %s\n",
+            stmt_line,
+            stmt_col,
+            type2str(body->value_type),
+            type2str(value.data_type));
+        exit(1);
+    }
+    switch (value.data_type)
+    {
+    case TYPE_INT:
+        body->value.int_val = value.int_value;
+        break;
+
+    case TYPE_FLOAT:
+        body->value.float_val = value.float_value;
+        break;
+    }
+}
+
+static TreeNode* block_main() {
+    TreeNode* first = NULL;
+    TreeNode* last = NULL;
+
+    bool working = true;
+
+    while (working) {
+        TreeNode* item = NULL;
+
+        switch (token.token_type) {
+        case TOKEN_KW_CONST:
+            stmt_const();
+            break;
+        default:
+            // TODO: stmt()
+            working = false;
+            break;
+        }
+        if (item != NULL) {
+            tree_append(&first, &last, item);
+        }
+        if (!working) break;
+        if (token.token_type == TOKEN_EOF) break;
+        expect(TOKEN_NEWLINE);
+    }
+    return first;
+}
+
+#pragma endregion
+
 void parse(char* buffer, char* buffer_end) {
     mem_init(buffer, buffer_end);
     NEXT;
-    TreeNode* res = expr();
+    TreeNode* res = block_main();
     printf("Root = %d\n", (uintptr_t)res - (uintptr_t)(mem_free_end));
     debug_print_tree(mem_free_end, mem_end);
 }

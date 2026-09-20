@@ -12,6 +12,7 @@ typedef enum NodeType {
     NODE_FLOATLIT,
     NODE_LOAD,
     NODE_STRLIT,
+    NODE_LISTITEM,
 } NodeType;
 
 typedef enum ExprOpType {
@@ -73,6 +74,11 @@ typedef struct StrLitData {
     uint16_t hash;
 } StrLitData;
 
+typedef struct ListItemData {
+    TreeNode* next;
+    TreeNode* node;
+} ListItemData;
+
 struct TreeNode {
     union {
         ExprOpData exprop;
@@ -80,11 +86,13 @@ struct TreeNode {
         KmFloat floatlit;
         StrLitData strlit;
         LoadData load;
+        ListItemData list;
         TreeNode* child;
     };
     NodeType node_type;
 };
 
+void tree_append(TreeNode** first_node, TreeNode** last_node, TreeNode* node);
 void debug_print_tree(char* start, char* end);
 
 #endif
