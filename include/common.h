@@ -46,5 +46,6 @@ const KmInt KM_TRUE;
 const KmInt KM_FALSE;
 
 int ipow(KmInt base, KmInt exp);
+const char* type2str(DataType datatype);
 
 #endif

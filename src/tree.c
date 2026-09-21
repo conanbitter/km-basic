@@ -92,8 +92,23 @@ void debug_print_tree(char* start, char* end) {
             printf("load %s  %" PRIuPTR "\n", cur->load.is_local ? "loc" : "glb", cur->load.offset);
             break;
 
+        case NODE_STORE:
+            printf("store %s [%" PRIuPTR "]=(%s)%" PRIuPTR "\n",
+                cur->store.is_local ? "loc" : "glb",
+                cur->store.offset,
+                type2str(cur->store.value_type),
+                (uintptr_t)(cur->store.value) - _start);
+            break;
+
         case NODE_LISTITEM:
-            printf("list      node %" PRIuPTR ", next %" PRIuPTR "\n", (uintptr_t)(cur->list.node) - _start, (uintptr_t)(cur->list.next) - _start);
+            if (cur->list.next == NULL) {
+                printf("list      node %" PRIuPTR ", end\n",
+                    (uintptr_t)(cur->list.node) - _start);
+            } else {
+                printf("list      node %" PRIuPTR ", next %" PRIuPTR "\n",
+                    (uintptr_t)(cur->list.node) - _start,
+                    (uintptr_t)(cur->list.next) - _start);
+            }
             break;
 
         case NODE_DUMMY:

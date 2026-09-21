@@ -11,6 +11,7 @@ typedef enum NodeType {
     NODE_INTLIT,
     NODE_FLOATLIT,
     NODE_LOAD,
+    NODE_STORE,
     NODE_STRLIT,
     NODE_LISTITEM,
 } NodeType;
@@ -68,6 +69,13 @@ typedef struct LoadData {
     bool is_local;
 } LoadData;
 
+typedef struct StoreData {
+    TreeNode* value;
+    uintptr_t offset;
+    bool is_local;
+    uint8_t value_type;
+} StoreData;
+
 typedef struct StrLitData {
     TreeNode* prev;
     uint16_t length;
@@ -86,6 +94,7 @@ struct TreeNode {
         KmFloat floatlit;
         StrLitData strlit;
         LoadData load;
+        StoreData store;
         ListItemData list;
         TreeNode* child;
     };

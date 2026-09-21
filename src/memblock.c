@@ -99,11 +99,11 @@ void name_emplace(size_t length, NameEntryType entry_type, uint16_t decl_line, u
     mem_temp = mem_free_start + sizeof(NameHeader);
 }
 
-static char* get_body(NameHeader* header) {
-    return (char*)header + header->text_len + header->padding;
+void* name_get_body(NameHeader* header) {
+    return (char*)(header + 1) + header->text_len + header->padding;
 }
 
-char* name_alloc_size(size_t size) {
+void* name_alloc_size(size_t size) {
     if ((mem_free_start + size) >= mem_free_end) {
         printf("Run out of memory");
         exit(1);

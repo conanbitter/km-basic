@@ -25,7 +25,7 @@ typedef struct NameHeader {
 typedef struct VarBody {
     uintptr_t offset;
     DataType value_type;
-} GlobalVarBody;
+} VarBody;
 
 typedef struct ConstBody {
     KmValue value;
@@ -44,7 +44,8 @@ TreeNode* mem_strlit_node(size_t length);
 void name_emplace(size_t length, NameEntryType entry_type, uint16_t decl_line, uint16_t decl_col);
 NameHeader* name_find(size_t length);
 void name_check_redecl(size_t length, int line, int col);
-char* name_alloc_size(size_t size);
+void* name_alloc_size(size_t size);
+void* name_get_body(NameHeader* header);
 
 #define NAME_ALLOC(typename) (typename*)name_alloc_size(sizeof(typename))
 

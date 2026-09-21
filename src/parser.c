@@ -153,16 +153,6 @@ static TreeNode* as_node(ExprResult res) {
     return node;
 }
 
-const char* type2str(DataType datatype) {
-    switch (datatype) {
-    case TYPE_INT: return "INTEGER";
-    case TYPE_FLOAT: return "FLOAT";
-    case TYPE_STRING: return "STRING";
-    case TYPE_INT | TYPE_FLOAT: return "INTEGER or FLOAT";
-    default: return "UNKNOWN";
-    }
-}
-
 static void check_and_cast(ExprResult* left, ExprResult* right, DataType in_types, DataType out_types, Token* optoken) {
     // type check
     if ((left->data_type & in_types) == 0) {
@@ -704,9 +694,26 @@ static TreeNode* expr() {
     return as_node(expr0());
 }
 
+static TreeNode* expr_try_cast(DataType target_type, DataType* result_type) {
+    ExprResult res = expr0();
+    type_cast(&res, target_type);
+    *result_type = res.data_type;
+    return as_node(res);
+}
+
 #pragma endregion
 
 #pragma region Statements
+
+uintptr_t frame_global;
+uintptr_t frame_local;
+bool in_function = false;
+
+uintptr_t frame_request_global(size_t size) {
+    uintptr_t res = frame_global;
+    frame_global += size * BYTE_ALIGN;
+    return res;
+}
 
 static void stmt_const() {
     int stmt_line = token.line;
@@ -716,10 +723,11 @@ static void stmt_const() {
 
     if (token.token_type != TOKEN_ID) unexpected();
     name_check_redecl(token.length, stmt_line, stmt_col);
+    DataType value_type = get_type_by_name(mem_temp, token.length);
     name_emplace(token.length, NAME_ENTRY_CONST, stmt_line, stmt_col);
 
     ConstBody* body = NAME_ALLOC(ConstBody);
-    body->value_type = get_type_by_name(mem_temp, token.length);
+    body->value_type = value_type;
 
     expect(TOKEN_ID);
     expect(TOKEN_EQ);
@@ -751,6 +759,61 @@ static void stmt_const() {
     }
 }
 
+static TreeNode* stmt_assign(NameHeader* name) {
+    VarBody* body;
+    int stmt_line = token.line;
+    int stmt_col = token.col;
+
+    if (name == NULL) {
+        DataType value_type = get_type_by_name(mem_temp, token.length);
+        name_emplace(token.length, NAME_ENTRY_VAR, stmt_line, stmt_col);
+        body = NAME_ALLOC(VarBody);
+        body->value_type = value_type;
+        body->offset = frame_request_global(1);
+    } else {
+        body = (VarBody*)name_get_body(name);
+    }
+
+    expect(TOKEN_ID);
+    expect(TOKEN_EQ);
+
+    DataType expr_type;
+    TreeNode* expr_node = expr_try_cast(body->value_type, &expr_type);
+
+    if (expr_type != body->value_type) {
+
+        printf("[%d:%d] ERROR: Type mismatch. Variable have type %s, but expression have type %s\n",
+            stmt_line,
+            stmt_col,
+            type2str(body->value_type),
+            type2str(expr_type));
+        exit(1);
+    }
+
+    TreeNode* node = mem_add_node();
+    node->node_type = NODE_STORE;
+    node->store.is_local = false;
+    node->store.offset = body->offset;
+    node->store.value = expr_node;
+    node->store.value_type = body->value_type;
+
+    return node;
+}
+
+static TreeNode* stmt() {
+    switch (token.token_type)
+    {
+    case TOKEN_ID: {
+        NameHeader* name = name_find(token.length);
+        if (name == NULL || name->entry_type == NAME_ENTRY_VAR || name->entry_type == NAME_ENTRY_VAR_LOCAL) return stmt_assign(name);
+    } break;
+
+    default:
+        break;
+    }
+    return NULL;
+}
+
 static TreeNode* block_main() {
     TreeNode* first = NULL;
     TreeNode* last = NULL;
@@ -765,8 +828,8 @@ static TreeNode* block_main() {
             stmt_const();
             break;
         default:
-            // TODO: stmt()
-            working = false;
+            item = stmt();
+            if (item == NULL) working = false;
             break;
         }
         if (item != NULL) {

@@ -1,2 +1,3 @@
 const a = 5
-const b = 7
+b = 7+a
+c$ = "8"
