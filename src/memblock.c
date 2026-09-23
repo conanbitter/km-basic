@@ -91,7 +91,7 @@ void name_emplace(size_t length, NameEntryType entry_type, uint16_t decl_line, u
     mem_free_start = align_ptr(mem_free_start + sizeof(NameHeader) + length);
     entry->prev = name_prev;
     entry->text_len = length;
-    entry->padding = mem_free_start - (char*)entry;
+    entry->padding = mem_free_start - (char*)entry - sizeof(NameHeader) - length;
     entry->entry_type = entry_type;
     entry->decl_line = decl_line;
     entry->decl_col = decl_col;
@@ -110,6 +110,7 @@ void* name_alloc_size(size_t size) {
     }
     char* body = mem_free_start;
     mem_free_start += size;
+    mem_temp = mem_free_start + sizeof(NameHeader);
     return body;
 }
 

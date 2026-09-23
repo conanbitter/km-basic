@@ -252,16 +252,50 @@ static ExprResult expr13() {
         NEXT;
         return result;
 
-    case TOKEN_ID:
-        char suffix = *(mem_temp + token.length - 1);
-        result.data_type = suffix == '#' ? TYPE_FLOAT : TYPE_INT;
-        result.is_literal = false;
-        result.node = mem_add_node();
-        result.node->node_type = NODE_LOAD;
-        result.node->load.is_local = false;
-        result.node->load.offset = 0;
-        NEXT;
-        return result;
+    case TOKEN_ID: {
+        NameHeader* id = name_find(token.length);
+        if (id == NULL) {
+            printf("[%d:%d] ERROR: identifier '%.*s' not found\n",
+                token.line,
+                token.col,
+                token.length,
+                mem_temp);
+            exit(1);
+        }
+
+        switch (id->entry_type)
+        {
+        case NAME_ENTRY_CONST: {
+            ConstBody* body = name_get_body(id);
+            result.data_type = body->value_type;
+            result.is_literal = true;
+            switch (body->value_type)
+            {
+            case TYPE_INT:
+                result.int_value = body->value.int_val;
+                break;
+
+            case TYPE_FLOAT:
+                result.float_value = body->value.float_val;
+                break;
+            }
+            NEXT;
+            return result;
+        }
+        case NAME_ENTRY_VAR:
+        case NAME_ENTRY_VAR_LOCAL: {
+            VarBody* body = name_get_body(id);
+            result.data_type = body->value_type;
+            result.is_literal = false;
+            result.node = mem_add_node();
+            result.node->node_type = NODE_LOAD;
+            result.node->load.is_local = id->entry_type == NAME_ENTRY_VAR_LOCAL;
+            result.node->load.offset = body->offset;
+            NEXT;
+            return result;
+        }
+        }
+    }
 
     case TOKEN_LPAREN:
         expect(TOKEN_LPAREN);
