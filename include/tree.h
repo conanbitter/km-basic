@@ -102,6 +102,6 @@ struct TreeNode {
 };
 
 void tree_append(TreeNode** first_node, TreeNode** last_node, TreeNode* node);
-void debug_print_tree(char* start, char* end);
+void debug_print_tree(char* start, char* end, TreeNode* root, const char* filename);
 
 #endif

@@ -882,6 +882,5 @@ void parse(char* buffer, char* buffer_end) {
     mem_init(buffer, buffer_end);
     NEXT;
     TreeNode* res = block_main();
-    printf("Root = %d\n", (uintptr_t)res - (uintptr_t)(mem_free_end));
-    debug_print_tree(mem_free_end, mem_end);
+    debug_print_tree(mem_free_end, mem_end, res, "tree.mmd");
 }

@@ -55,66 +55,83 @@ void tree_append(TreeNode** first_node, TreeNode** last_node, TreeNode* node) {
     if (*first_node == NULL) *first_node = item;
 }
 
-void debug_print_tree(char* start, char* end) {
+void debug_print_tree(char* start, char* end, TreeNode* root, const char* filename) {
+    FILE* fl = fopen(filename, "w");
+
     TreeNode* _end = (TreeNode*)end;
     TreeNode* cur = (TreeNode*)start;
     uintptr_t _start = (uintptr_t)start;
+
+    fprintf(fl, "flowchart TD\nRoot---id%" PRIuPTR "\n", (uintptr_t)root - (uintptr_t)(mem_free_end));
+
     while (cur != _end)
     {
-        printf("%4" PRIuPTR " ", (uintptr_t)cur - _start);
+        fprintf(fl, "id%" PRIuPTR, (uintptr_t)cur - _start);
         switch (cur->node_type)
         {
         case NODE_EXPROP:
-            printf("op %s    [%" PRIuPTR "]", opstr[cur->exprop.op], (uintptr_t)(cur->exprop.left) - _start);
+            fprintf(fl, "[[\"%s\"]]\n", opstr[cur->exprop.op]);
             if (cur->exprop.right != NULL) {
-                printf(", [%" PRIuPTR "]\n", (uintptr_t)(cur->exprop.right) - _start);
+                fprintf(fl, "id%" PRIuPTR "---|left|id%" PRIuPTR "\n",
+                    (uintptr_t)cur - _start,
+                    (uintptr_t)(cur->exprop.left) - _start);
+                fprintf(fl, "id%" PRIuPTR "---|right|id%" PRIuPTR "\n",
+                    (uintptr_t)cur - _start,
+                    (uintptr_t)(cur->exprop.right) - _start);
             } else {
-                printf("\n");
+                fprintf(fl, "id%" PRIuPTR "---id%" PRIuPTR "\n",
+                    (uintptr_t)cur - _start,
+                    (uintptr_t)(cur->exprop.left) - _start);
             }
             break;
 
         case NODE_FLOATLIT:
-            printf("floatlit  %f\n", cur->floatlit);
+            fprintf(fl, "[/\"float lit\\n%f\"/]\n", cur->floatlit);
             break;
 
         case NODE_INTLIT:
-            printf("intlit    %" PRIkmINT "\n", cur->intlit);
+            fprintf(fl, "[/\"int lit\\n%" PRIkmINT "\"/]\n", cur->intlit);
             break;
 
         case NODE_STRLIT:
             char* string = (char*)(cur + 1);
             uint16_t length = cur->strlit.length;
-            printf("strlit    \"%.*s\" (hash: %04X)\n", length, string, cur->strlit.hash);
+            fprintf(fl, "[/\"str lit\\n'%.*s'\\n(hash: %04X)\"/]\n", length, string, cur->strlit.hash);
             cur = (TreeNode*)((char*)(cur + 1) + ALIGN_UP(length)) - 1;
             break;
 
         case NODE_LOAD:
-            printf("load %s  $(%" PRIuPTR ")\n", cur->load.is_local ? "loc" : "glb", cur->load.offset);
+            fprintf(fl, "[\"load %s\\n$%" PRIuPTR "\"]\n", cur->load.is_local ? "loc" : "glb", cur->load.offset);
             break;
 
         case NODE_STORE:
-            printf("store %s $(%" PRIuPTR ")=(%s)[%" PRIuPTR "]\n",
+            fprintf(fl, "[\"store %s\\n(%s)$%" PRIuPTR "\"]\n",
                 cur->store.is_local ? "loc" : "glb",
-                cur->store.offset,
                 type2str(cur->store.value_type),
+                cur->store.offset);
+            fprintf(fl, "id%" PRIuPTR "---id%" PRIuPTR "\n",
+                (uintptr_t)cur - _start,
                 (uintptr_t)(cur->store.value) - _start);
             break;
 
         case NODE_LISTITEM:
-            if (cur->list.next == NULL) {
-                printf("list      node [%" PRIuPTR "], end\n",
-                    (uintptr_t)(cur->list.node) - _start);
-            } else {
-                printf("list      node [%" PRIuPTR "], next %" PRIuPTR "\n",
-                    (uintptr_t)(cur->list.node) - _start,
+            fprintf(fl, "(list)\n");
+            fprintf(fl, "id%" PRIuPTR "---|node|id%" PRIuPTR "\n",
+                (uintptr_t)cur - _start,
+                (uintptr_t)(cur->list.node) - _start);
+            if (cur->list.next != NULL) {
+                fprintf(fl, "id%" PRIuPTR "---|next|id%" PRIuPTR "\n",
+                    (uintptr_t)cur - _start,
                     (uintptr_t)(cur->list.next) - _start);
             }
             break;
 
         case NODE_DUMMY:
-            printf("dummy\n");
+            fprintf(fl, "[dummy]\n");
             break;
         }
         cur++;
     }
+
+    fclose(fl);
 }
