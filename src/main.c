@@ -11,7 +11,7 @@
 char buffer[BUFFER_SIZE];
 
 int main() {
-    open_file("parsetest.bas");
+    open_file("exprtest.bas");
     /*
         open_file("sample.bas");
         next_token(buffer, 256);

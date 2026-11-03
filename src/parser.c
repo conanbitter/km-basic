@@ -134,23 +134,18 @@ static void type_cast(ExprResult* res, DataType target_type) {
     }
 }
 
-static TreeNode* as_node(ExprResult res) {
-    if (!res.is_literal) return res.node;
+static void as_code(ExprResult res) {
+    if (!res.is_literal) return;
 
-    TreeNode* node = mem_add_node();
     switch (res.data_type)
     {
     case TYPE_INT:
-        node->node_type = NODE_INTLIT;
-        node->intlit = res.int_value;
+        printf("ilit %d\n", res.int_value);
         break;
     case TYPE_FLOAT:
-        node->node_type = NODE_FLOATLIT;
-        node->floatlit = res.float_value;
+        printf("flit %f\n", res.float_value);
         break;
     }
-
-    return node;
 }
 
 static void check_and_cast(ExprResult* left, ExprResult* right, DataType in_types, DataType out_types, Token* optoken) {
@@ -199,10 +194,12 @@ static void check_unary(ExprResult* operand, DataType in_types, Token* optoken) 
 
 static ExprResult binop_expr(ExprResult left, ExprResult right, ExprOpType optype) {
     TreeNode* node = mem_add_node();
-    node->node_type = NODE_EXPROP;
-    node->exprop.op = optype;
-    node->exprop.left = as_node(left);
-    node->exprop.right = as_node(right);
+    //node->node_type = NODE_EXPROP;
+    //node->exprop.op = optype;
+    //node->exprop.left = as_code(left);
+    //node->exprop.right = as_code(right);
+    as_code(left);
+    as_code(right);
 
     left.is_literal = false;
     left.node = node;
@@ -214,7 +211,7 @@ static ExprResult unop_expr(ExprResult operand, ExprOpType optype) {
     TreeNode* node = mem_add_node();
     node->node_type = NODE_EXPROP;
     node->exprop.op = optype;
-    node->exprop.left = as_node(operand);
+    //node->exprop.left = as_code(operand);
     node->exprop.right = NULL;
 
     operand.is_literal = false;
@@ -253,6 +250,11 @@ static ExprResult expr13() {
         return result;
 
     case TOKEN_ID: {
+        result.data_type = TYPE_INT;
+        result.is_literal = false;
+        printf("push var\n");
+        return result;
+
         NameHeader* id = name_find(token.length);
         if (id == NULL) {
             printf("[%d:%d] ERROR: identifier '%.*s' not found\n",
@@ -724,15 +726,15 @@ static ExprResult expr0() {
     return left;
 }
 
-static TreeNode* expr() {
-    return as_node(expr0());
+static void expr() {
+    as_code(expr0());
 }
 
-static TreeNode* expr_try_cast(DataType target_type, DataType* result_type) {
+static void expr_try_cast(DataType target_type, DataType* result_type) {
     ExprResult res = expr0();
     type_cast(&res, target_type);
     *result_type = res.data_type;
-    return as_node(res);
+    //return as_code(res);
 }
 
 #pragma endregion
@@ -812,7 +814,7 @@ static TreeNode* stmt_assign(NameHeader* name) {
     expect(TOKEN_EQ);
 
     DataType expr_type;
-    TreeNode* expr_node = expr_try_cast(body->value_type, &expr_type);
+    TreeNode* expr_node;// = expr_try_cast(body->value_type, &expr_type);
 
     if (expr_type != body->value_type) {
 
@@ -881,6 +883,7 @@ static TreeNode* block_main() {
 void parse(char* buffer, char* buffer_end) {
     mem_init(buffer, buffer_end);
     NEXT;
-    TreeNode* res = block_main();
-    debug_print_tree(mem_free_end, mem_end, res, "tree.mmd");
+    //TreeNode* res = block_main();
+    expr();
+    //debug_print_tree(mem_free_end, mem_end, res, "tree.mmd");
 }
