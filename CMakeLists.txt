@@ -10,6 +10,7 @@ set(INCLUDE_FILES
     parser.h
     tree.h
     memblock.h
+    exptree.h
 )
 
 set(SRC_FILES
@@ -19,6 +20,7 @@ set(SRC_FILES
     parser.c
     tree.c
     memblock.c
+    exptree.c
 )
 
 list(TRANSFORM INCLUDE_FILES PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/include/)
