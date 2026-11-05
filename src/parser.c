@@ -1,4 +1,5 @@
 #include "common.h"
+#include "exptree.h"
 #include "lexer.h"
 #include "parser.h"
 #include "tree.h"
@@ -10,11 +11,11 @@
 
 typedef struct ExprResult {
     DataType data_type;
-    bool is_literal;
+    bool is_const;
     union {
         KmInt int_value;
         KmFloat float_value;
-        TreeNode* node;
+        void* node;
     };
 } ExprResult;
 
@@ -53,14 +54,12 @@ static DataType get_type_by_name(char* name, size_t name_len) {
 
 static void int2float(ExprResult* res) {
     res->data_type = TYPE_FLOAT;
-    if (res->is_literal) {
+    if (res->is_const) {
         res->float_value = res->int_value;
     } else {
-        TreeNode* node = mem_add_node();
-        node->node_type = NODE_EXPROP;
-        node->exprop.op = UNOP_ITOF;
-        node->exprop.left = res->node;
-        node->exprop.right = NULL;
+        ExptUnop* node = EXPT_NODE(ExptUnop);
+        node->opcode = EXPT_UNOP_ITOF;
+        node->arg = exptr_addr(node, res->node);
 
         res->node = node;
     }
@@ -68,14 +67,12 @@ static void int2float(ExprResult* res) {
 
 static void float2int(ExprResult* res) {
     res->data_type = TYPE_INT;
-    if (res->is_literal) {
+    if (res->is_const) {
         res->int_value = res->float_value;
     } else {
-        TreeNode* node = mem_add_node();
-        node->node_type = NODE_EXPROP;
-        node->exprop.op = UNOP_FTOI;
-        node->exprop.left = res->node;
-        node->exprop.right = NULL;
+        ExptUnop* node = EXPT_NODE(ExptUnop);
+        node->opcode = EXPT_UNOP_FTOI;
+        node->arg = exptr_addr(node, res->node);
 
         res->node = node;
     }
@@ -91,10 +88,10 @@ static void type_cast(ExprResult* res, DataType target_type) {
             float2int(res);
             break;
         case TYPE_STRING:
-            res->data_type = TYPE_INT;
-            res->is_literal = false;
+            /*res->data_type = TYPE_INT;
+            res->is_const = false;
             res->node = mem_add_node();
-            res->node->node_type = NODE_DUMMY;
+            res->node->node_type = NODE_DUMMY;*/
             break;
         }
         break;
@@ -106,46 +103,51 @@ static void type_cast(ExprResult* res, DataType target_type) {
             int2float(res);
             break;
         case TYPE_STRING:
-            res->data_type = TYPE_FLOAT;
-            res->is_literal = false;
+            /*res->data_type = TYPE_FLOAT;
+            res->is_const = false;
             res->node = mem_add_node();
-            res->node->node_type = NODE_DUMMY;
+            res->node->node_type = NODE_DUMMY;*/
             break;
         }
         break;
 
-    case TYPE_STRING:
-        switch (res->data_type)
-        {
-        case TYPE_INT:
-            res->data_type = TYPE_STRING;
-            res->is_literal = false;
-            res->node = mem_add_node();
-            res->node->node_type = NODE_DUMMY;
-            break;
-        case TYPE_FLOAT:
-            res->data_type = TYPE_STRING;
-            res->is_literal = false;
-            res->node = mem_add_node();
-            res->node->node_type = NODE_DUMMY;
-            break;
-        }
-        break;
+        /*case TYPE_STRING:
+            switch (res->data_type)
+            {
+            case TYPE_INT:
+                res->data_type = TYPE_STRING;
+                res->is_const = false;
+                res->node = mem_add_node();
+                res->node->node_type = NODE_DUMMY;
+                break;
+            case TYPE_FLOAT:
+                res->data_type = TYPE_STRING;
+                res->is_const = false;
+                res->node = mem_add_node();
+                res->node->node_type = NODE_DUMMY;
+                break;
+            }
+            break;*/
     }
 }
 
-static void as_code(ExprResult res) {
-    if (!res.is_literal) return;
+static void* as_node(ExprResult res) {
+    if (!res.is_const) return res.node;
 
+    ExptConst* node = EXPT_NODE(ExptConst);
     switch (res.data_type)
     {
     case TYPE_INT:
-        printf("ilit %d\n", res.int_value);
+        node->valtype = TYPE_INT;
+        node->value.int_val = res.int_value;
         break;
     case TYPE_FLOAT:
-        printf("flit %f\n", res.float_value);
+        node->valtype = TYPE_FLOAT;
+        node->value.float_val = res.float_value;
         break;
     }
+
+    return node;
 }
 
 static void check_and_cast(ExprResult* left, ExprResult* right, DataType in_types, DataType out_types, Token* optoken) {
@@ -192,29 +194,29 @@ static void check_unary(ExprResult* operand, DataType in_types, Token* optoken) 
     }
 }
 
-static ExprResult binop_expr(ExprResult left, ExprResult right, ExprOpType optype) {
-    TreeNode* node = mem_add_node();
-    //node->node_type = NODE_EXPROP;
-    //node->exprop.op = optype;
-    //node->exprop.left = as_code(left);
-    //node->exprop.right = as_code(right);
-    as_code(left);
-    as_code(right);
+static ExprResult binop_expr(ExprResult left, ExprResult right, ExptBinopCode opcode) {
+    void* left_ptr = as_node(left);
+    void* right_ptr = as_node(right);
 
-    left.is_literal = false;
+    ExptBinop* node = EXPT_NODE(ExptBinop);
+    node->opcode = opcode;
+    node->left = exptr_addr(node, left_ptr);
+    node->right = exptr_addr(node, right_ptr);
+
+    left.is_const = false;
     left.node = node;
 
     return left;
 }
 
-static ExprResult unop_expr(ExprResult operand, ExprOpType optype) {
-    TreeNode* node = mem_add_node();
-    node->node_type = NODE_EXPROP;
-    node->exprop.op = optype;
-    //node->exprop.left = as_code(operand);
-    node->exprop.right = NULL;
+static ExprResult unop_expr(ExprResult operand, ExptUnopCode opcode) {
+    void* arg_ptr = as_node(operand);
 
-    operand.is_literal = false;
+    ExptUnop* node = EXPT_NODE(ExptUnop);
+    node->opcode = opcode;
+    node->arg = exptr_addr(node, arg_ptr);
+
+    operand.is_const = false;
     operand.node = node;
 
     return operand;
@@ -230,29 +232,33 @@ static ExprResult expr13() {
     {
     case TOKEN_INTLIT:
         result.data_type = TYPE_INT;
-        result.is_literal = true;
+        result.is_const = true;
         result.int_value = token.int_value;
         NEXT;
         return result;
 
     case TOKEN_FLOATLIT:
         result.data_type = TYPE_FLOAT;
-        result.is_literal = true;
+        result.is_const = true;
         result.float_value = token.float_value;
         NEXT;
         return result;
 
     case TOKEN_STRLIT:
-        result.data_type = TYPE_STRING;
-        result.is_literal = false;
+        /*result.data_type = TYPE_STRING;
+        result.is_const = false;
         result.node = mem_strlit_node(token.length);
-        NEXT;
+        NEXT;*/
         return result;
 
     case TOKEN_ID: {
-        result.data_type = TYPE_INT;
-        result.is_literal = false;
-        printf("push var\n");
+        DataType var_type = get_type_by_name(mem_temp, token.length);
+        ExptLoad* node = EXPT_NODE(ExptLoad);
+        node->datatype = var_type;
+        result.data_type = var_type;
+        result.is_const = false;
+        result.node = node;
+        NEXT;
         return result;
 
         NameHeader* id = name_find(token.length);
@@ -270,7 +276,7 @@ static ExprResult expr13() {
         case NAME_ENTRY_CONST: {
             ConstBody* body = name_get_body(id);
             result.data_type = body->value_type;
-            result.is_literal = true;
+            result.is_const = true;
             switch (body->value_type)
             {
             case TYPE_INT:
@@ -288,11 +294,11 @@ static ExprResult expr13() {
         case NAME_ENTRY_VAR_LOCAL: {
             VarBody* body = name_get_body(id);
             result.data_type = body->value_type;
-            result.is_literal = false;
-            result.node = mem_add_node();
-            result.node->node_type = NODE_LOAD;
-            result.node->load.is_local = id->entry_type == NAME_ENTRY_VAR_LOCAL;
-            result.node->load.offset = body->offset;
+            result.is_const = false;
+            //result.node = mem_add_node();
+            //result.node->node_type = NODE_LOAD;
+            //result.node->load.is_local = id->entry_type == NAME_ENTRY_VAR_LOCAL;
+            //result.node->load.offset = body->offset;
             NEXT;
             return result;
         }
@@ -307,14 +313,14 @@ static ExprResult expr13() {
 
     case TOKEN_KW_TRUE:
         result.data_type = TYPE_INT;
-        result.is_literal = true;
+        result.is_const = true;
         result.int_value = KM_TRUE;
         NEXT;
         return result;
 
     case TOKEN_KW_FALSE:
         result.data_type = TYPE_INT;
-        result.is_literal = true;
+        result.is_const = true;
         result.int_value = KM_FALSE;
         NEXT;
         return result;
@@ -361,7 +367,7 @@ static ExprResult expr12() {
 
         check_and_cast(&left, &right, TYPE_INT | TYPE_FLOAT, TYPE_INT | TYPE_FLOAT, &optoken);
 
-        if (right.is_literal && right.data_type == TYPE_INT && right.int_value < 0) {
+        if (right.is_const && right.data_type == TYPE_INT && right.int_value < 0) {
             printf("[%d:%d] ERROR: Attempt to exponetiate integer with negative exponent (%" PRIkmINT ").",
                 optoken.line,
                 optoken.col,
@@ -370,7 +376,7 @@ static ExprResult expr12() {
             exit(1);
         }
 
-        if (left.is_literal && right.is_literal) {
+        if (left.is_const && right.is_const) {
             if (left.data_type == TYPE_INT) {
                 left.int_value = ipow(left.int_value, right.int_value);
             } else {
@@ -398,7 +404,7 @@ static ExprResult expr11() {
         ExprResult operand = expr12();
         check_unary(&operand, TYPE_INT | TYPE_FLOAT, &optoken);
 
-        if (operand.is_literal) {
+        if (operand.is_const) {
             if (operand.data_type == TYPE_INT) {
                 operand.int_value = -operand.int_value;
             } else {
@@ -428,7 +434,7 @@ static ExprResult expr10() {
         DataType out_types = token.token_type == TOKEN_MUL ? TYPE_INT | TYPE_FLOAT : TYPE_FLOAT;
         check_and_cast(&left, &right, TYPE_INT | TYPE_FLOAT, out_types, &optoken);
 
-        if (left.is_literal && right.is_literal) {
+        if (left.is_const && right.is_const) {
             if (token.token_type == TOKEN_MUL) {
                 if (left.data_type == TYPE_INT) {
                     left.int_value *= right.int_value;
@@ -459,7 +465,7 @@ static ExprResult expr9() {
 
         check_and_cast(&left, &right, TYPE_INT | TYPE_FLOAT, TYPE_INT, &optoken);
 
-        if (left.is_literal && right.is_literal) {
+        if (left.is_const && right.is_const) {
             left.int_value /= right.int_value;
         } else {
             left = binop_expr(left, right, BINOP_IDIV);
@@ -480,7 +486,7 @@ static ExprResult expr8() {
 
         check_and_cast(&left, &right, TYPE_INT | TYPE_FLOAT, TYPE_INT, &optoken);
 
-        if (left.is_literal && right.is_literal) {
+        if (left.is_const && right.is_const) {
             left.int_value %= right.int_value;
         } else {
             left = binop_expr(left, right, BINOP_MOD);
@@ -501,7 +507,7 @@ static ExprResult expr7() {
 
         check_and_cast(&left, &right, TYPE_INT | TYPE_FLOAT, TYPE_INT | TYPE_FLOAT, &optoken);
 
-        if (left.is_literal && right.is_literal) {
+        if (left.is_const && right.is_const) {
             if (left.data_type == TYPE_INT) {
                 if (optoken.token_type == TOKEN_PLUS) {
                     left.int_value += right.int_value;
@@ -555,7 +561,7 @@ static ExprResult expr5() {
 
         check_and_cast(&left, &right, TYPE_INT, TYPE_INT, &optoken);
 
-        if (left.is_literal && right.is_literal) {
+        if (left.is_const && right.is_const) {
             if (optoken.token_type == TOKEN_LSHIFT) {
                 left.int_value <<= right.int_value;
             } else {
@@ -582,7 +588,7 @@ static ExprResult expr4() {
 
         check_and_cast(&left, &right, TYPE_INT | TYPE_FLOAT, TYPE_INT | TYPE_FLOAT, &optoken);
 
-        if (left.is_literal && right.is_literal) {
+        if (left.is_const && right.is_const) {
             if (left.data_type == TYPE_INT) {
                 switch (optoken.token_type)
                 {
@@ -648,7 +654,7 @@ static ExprResult expr3() {
         ExprResult operand = expr4();
         check_unary(&operand, TYPE_INT, &optoken);
 
-        if (operand.is_literal) {
+        if (operand.is_const) {
             operand.int_value = ~operand.int_value;
             return operand;
         } else {
@@ -671,9 +677,9 @@ static ExprResult expr2() {
 
         check_and_cast(&left, &right, TYPE_INT, TYPE_INT, &optoken);
 
-        if (optoken.token_type == TOKEN_KW_ANDALSO && left.is_literal && left.int_value == 0) continue;
+        if (optoken.token_type == TOKEN_KW_ANDALSO && left.is_const && left.int_value == 0) continue;
 
-        if (left.is_literal && right.is_literal) {
+        if (left.is_const && right.is_const) {
             left.int_value &= right.int_value;
         } else {
             left = binop_expr(left, right, optoken.token_type == TOKEN_KW_AND ? BINOP_AND : BINOP_ANDSC);
@@ -694,9 +700,9 @@ static ExprResult expr1() {
 
         check_and_cast(&left, &right, TYPE_INT, TYPE_INT, &optoken);
 
-        if (optoken.token_type == TOKEN_KW_ORELSE && left.is_literal && left.int_value != 0) continue;
+        if (optoken.token_type == TOKEN_KW_ORELSE && left.is_const && left.int_value != 0) continue;
 
-        if (left.is_literal && right.is_literal) {
+        if (left.is_const && right.is_const) {
             left.int_value |= right.int_value;
         } else {
             left = binop_expr(left, right, optoken.token_type == TOKEN_KW_OR ? BINOP_OR : BINOP_ORSC);
@@ -717,7 +723,7 @@ static ExprResult expr0() {
 
         check_and_cast(&left, &right, TYPE_INT, TYPE_INT, &optoken);
 
-        if (left.is_literal && right.is_literal) {
+        if (left.is_const && right.is_const) {
             left.int_value ^= right.int_value;
         } else {
             left = binop_expr(left, right, BINOP_XOR);
@@ -726,8 +732,8 @@ static ExprResult expr0() {
     return left;
 }
 
-static void expr() {
-    as_code(expr0());
+static void* expr() {
+    return as_node(expr0());
 }
 
 static void expr_try_cast(DataType target_type, DataType* result_type) {
@@ -771,7 +777,7 @@ static void stmt_const() {
     stmt_line = token.line;
     stmt_col = token.col;
     ExprResult value = expr0();
-    if (!value.is_literal) {
+    if (!value.is_const) {
         printf("[%d:%d] ERROR: Expression is not constant\n", stmt_line, stmt_col);
         exit(1);
     }
@@ -880,10 +886,13 @@ static TreeNode* block_main() {
 
 #pragma endregion
 
+static uint8_t expr_tree[1024];
+
 void parse(char* buffer, char* buffer_end) {
     mem_init(buffer, buffer_end);
+    expt_init(expr_tree);
     NEXT;
-    //TreeNode* res = block_main();
-    expr();
+    void* res = expr();//block_main();
+    exptr_debug_print(res);
     //debug_print_tree(mem_free_end, mem_end, res, "tree.mmd");
 }

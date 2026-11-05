@@ -13,10 +13,11 @@
 char buffer[BUFFER_SIZE];
 
 int main() {
-    printf("ExptBinop: %zu\n", sizeof(ExptBinop));
+    /*printf("ExptBinop: %zu\n", sizeof(ExptBinop));
     printf("ExptUnop: %zu\n", sizeof(ExptUnop));
     printf("ExptConst: %zu\n", sizeof(ExptConst));
     printf("ExptLoad: %zu\n", sizeof(ExptLoad));
+    printf("ExptNode: %zu\n", sizeof(ExptNode));
 
     ExptBinop test = { 0 };
     test.node_type = 2;
@@ -26,6 +27,7 @@ int main() {
     printf("ExptUnop type: %d\n", ((ExptUnop*)&test)->node_type);
     printf("ExptConst type: %d\n", ((ExptConst*)&test)->node_type);
     printf("ExptLoad type: %d\n", ((ExptLoad*)&test)->node_type);
+    printf("ExptNode type: %d\n", ((ExptNode*)&test)->node_type);*/
     open_file("exprtest.bas");
     /*
         open_file("sample.bas");
