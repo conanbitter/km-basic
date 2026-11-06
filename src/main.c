@@ -7,6 +7,7 @@
 #include "memblock.h"
 
 #include "exptree.h"
+#include "bytecode.h"
 
 #define BUFFER_SIZE (1024)
 
@@ -38,6 +39,7 @@ int main() {
             next_token(buffer, 256);
         }
     */
+    bc_init();
     parse(buffer, buffer + BUFFER_SIZE);
     close_file();
     return 0;

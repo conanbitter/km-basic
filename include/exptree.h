@@ -44,10 +44,10 @@ typedef enum ExptBinopCode {
     EXPT_BINOP_ILSEQ,
     EXPT_BINOP_FLSEQ,
     EXPT_BINOP_AND,
-    EXPT_BINOP_ANDSC, // short-circuit
     EXPT_BINOP_OR,
-    EXPT_BINOP_ORSC,  // short-circuit
     EXPT_BINOP_XOR,
+    EXPT_BINOP_ANDSC, // short-circuit
+    EXPT_BINOP_ORSC,  // short-circuit
 } ExptBinopCode;
 
 typedef enum ExptUnopCode {
