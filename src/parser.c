@@ -59,7 +59,7 @@ static void int2float(ExprResult* res) {
     } else {
         ExptUnop* node = EXPT_NODE(ExptUnop);
         node->opcode = EXPT_UNOP_ITOF;
-        node->arg = exptr_addr(node, res->node);
+        node->arg = expt_addr(node, res->node);
 
         res->node = node;
     }
@@ -72,7 +72,7 @@ static void float2int(ExprResult* res) {
     } else {
         ExptUnop* node = EXPT_NODE(ExptUnop);
         node->opcode = EXPT_UNOP_FTOI;
-        node->arg = exptr_addr(node, res->node);
+        node->arg = expt_addr(node, res->node);
 
         res->node = node;
     }
@@ -200,8 +200,8 @@ static ExprResult binop_expr(ExprResult left, ExprResult right, ExptBinopCode op
 
     ExptBinop* node = EXPT_NODE(ExptBinop);
     node->opcode = opcode;
-    node->left = exptr_addr(node, left_ptr);
-    node->right = exptr_addr(node, right_ptr);
+    node->left = expt_addr(node, left_ptr);
+    node->right = expt_addr(node, right_ptr);
 
     left.is_const = false;
     left.node = node;
@@ -214,7 +214,7 @@ static ExprResult unop_expr(ExprResult operand, ExptUnopCode opcode) {
 
     ExptUnop* node = EXPT_NODE(ExptUnop);
     node->opcode = opcode;
-    node->arg = exptr_addr(node, arg_ptr);
+    node->arg = expt_addr(node, arg_ptr);
 
     operand.is_const = false;
     operand.node = node;
@@ -732,14 +732,22 @@ static ExprResult expr0() {
     return left;
 }
 
-static void* expr() {
-    return as_node(expr0());
+static uint8_t expr_tree[1024];
+
+static void expr() {
+    expt_init(expr_tree);
+    void* root = as_node(expr0());
+    //exptr_debug_print(res);
+    expt_codegen(root);
 }
 
 static void expr_try_cast(DataType target_type, DataType* result_type) {
+    expt_init(expr_tree);
     ExprResult res = expr0();
     type_cast(&res, target_type);
     *result_type = res.data_type;
+    void* root = as_node(res);
+    expt_codegen(root);
     //return as_code(res);
 }
 
@@ -886,13 +894,11 @@ static TreeNode* block_main() {
 
 #pragma endregion
 
-static uint8_t expr_tree[1024];
+
 
 void parse(char* buffer, char* buffer_end) {
     mem_init(buffer, buffer_end);
-    expt_init(expr_tree);
     NEXT;
-    void* res = expr();//block_main();
-    exptr_debug_print(res);
-    //debug_print_tree(mem_free_end, mem_end, res, "tree.mmd");
+    DataType restype;
+    expr_try_cast(TYPE_INT, &restype);//block_main();
 }

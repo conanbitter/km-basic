@@ -1,5 +1,6 @@
 #include "exptree.h"
 #include "lexer.h"
+#include "bytecode.h"
 
 static uint8_t* tree_start;
 static uint8_t* tree_cur;
@@ -22,7 +23,7 @@ void* expt_alloc(size_t size, ExptNodeType node_type) {
     return body;
 }
 
-uint8_t exptr_addr(void* from, void* to) {
+uint8_t expt_addr(void* from, void* to) {
     uintptr_t addr = (uintptr_t)from - (uintptr_t)to;
     if (addr > 255) {
         printf("[%d:%d] ERROR: expression is to complex",
@@ -31,6 +32,76 @@ uint8_t exptr_addr(void* from, void* to) {
         );
     }
     return (uint8_t)addr;
+}
+
+void expt_codegen(void* root) {
+    ExptNode* cur = (ExptNode*)root;
+    switch (cur->node_type)
+    {
+    case EXPT_TYPE_ExptBinop:
+    {
+        ExptBinop* node = (ExptBinop*)cur;
+
+        void* left = (char*)root - node->left;
+        void* right = (char*)root - node->right;
+        expt_codegen(left);
+        expt_codegen(right);
+
+        bc_emit(node->opcode + BC_OPCODE_IPOW);
+    }
+    break;
+
+    case EXPT_TYPE_ExptUnop:
+    {
+        ExptUnop* node = (ExptUnop*)cur;
+
+        void* arg = (char*)root - node->arg;
+        expt_codegen(arg);
+
+        bc_emit(node->opcode + BC_OPCODE_INEG);
+    }
+    break;
+
+    case EXPT_TYPE_ExptConst:
+    {
+        ExptConst* node = (ExptConst*)cur;
+        switch (node->valtype)
+        {
+        case TYPE_INT:
+            bc_emit(BC_OPCODE_IPUSH);
+            bc_arg_int(node->value.int_val);
+            break;
+
+        case TYPE_FLOAT:
+            bc_emit(BC_OPCODE_FPUSH);
+            bc_arg_float(node->value.float_val);
+            break;
+
+        default:
+            break;
+        }
+    }
+    break;
+
+    case EXPT_TYPE_ExptLoad:
+    {
+        ExptLoad* node = (ExptLoad*)cur;
+        switch (node->datatype)
+        {
+        case TYPE_INT:
+            bc_emit(BC_OPCODE_ILOAD);
+            break;
+
+        case TYPE_FLOAT:
+            bc_emit(BC_OPCODE_FLOAD);
+            break;
+
+        default:
+            break;
+        }
+    }
+    break;
+    }
 }
 
 static const char* binopstr[] = {

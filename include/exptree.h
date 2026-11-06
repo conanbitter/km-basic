@@ -102,7 +102,8 @@ typedef struct ExptNode {
 uint8_t* expt_init(uint8_t* start);
 void* expt_alloc(size_t size, ExptNodeType node_type);
 void exptr_debug_print(void* root);
-uint8_t exptr_addr(void* from, void* to);
+uint8_t expt_addr(void* from, void* to);
+void expt_codegen(void* root);
 
 #define EXPT_NODE(typename) (typename*)expt_alloc(sizeof(typename), EXPT_TYPE_ ## typename)
 
