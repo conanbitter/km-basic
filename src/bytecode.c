@@ -140,7 +140,7 @@ void bc_debug_print() {
         if (opcode == BC_OPCODE_APUSH || (opcode >= BC_OPCODE_ILOAD && opcode <= BC_OPCODE_CALL)) {
             cur -= sizeof(void*);
             void* value = *((void**)cur);
-            printf(" %p", value);
+            printf(" [%p]", value);
         }
 
         if (opcode == BC_OPCODE_SYSCALL) {

@@ -99,7 +99,7 @@ void expt_codegen(void* root) {
         default:
             break;
         }
-        bc_arg_addr(NULL);
+        bc_arg_addr(node->addr);
     }
     break;
     }

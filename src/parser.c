@@ -253,14 +253,14 @@ static ExprResult expr13() {
         return result;
 
     case TOKEN_ID: {
-        DataType var_type = get_type_by_name(mem_temp, token.length);
+        /*DataType var_type = get_type_by_name(mem_temp, token.length);
         ExptLoad* node = EXPT_NODE(ExptLoad);
         node->datatype = var_type;
         result.data_type = var_type;
         result.is_const = false;
         result.node = node;
         NEXT;
-        return result;
+        return result;*/
 
         NameHeader* id = name_find(token.length);
         if (id == NULL) {
@@ -294,12 +294,16 @@ static ExprResult expr13() {
         case NAME_ENTRY_VAR:
         case NAME_ENTRY_VAR_LOCAL: {
             VarBody* body = name_get_body(id);
+
+            ExptLoad* node = EXPT_NODE(ExptLoad);
+            node->datatype = body->value_type;
+            node->local = id->entry_type == NAME_ENTRY_VAR_LOCAL;
+            node->addr = (void*)body->offset;
+
             result.data_type = body->value_type;
             result.is_const = false;
-            //result.node = mem_add_node();
-            //result.node->node_type = NODE_LOAD;
-            //result.node->load.is_local = id->entry_type == NAME_ENTRY_VAR_LOCAL;
-            //result.node->load.offset = body->offset;
+            result.node = node;
+
             NEXT;
             return result;
         }
@@ -810,7 +814,7 @@ static void stmt_const() {
     }
 }
 
-static TreeNode* stmt_assign(NameHeader* name) {
+static void stmt_assign(NameHeader* name) {
     VarBody* body;
     int stmt_line = token.line;
     int stmt_col = token.col;
@@ -829,7 +833,7 @@ static TreeNode* stmt_assign(NameHeader* name) {
     expect(TOKEN_EQ);
 
     DataType expr_type;
-    TreeNode* expr_node;// = expr_try_cast(body->value_type, &expr_type);
+    expr_try_cast(body->value_type, &expr_type);
 
     if (expr_type != body->value_type) {
 
@@ -841,66 +845,60 @@ static TreeNode* stmt_assign(NameHeader* name) {
         exit(1);
     }
 
-    TreeNode* node = mem_add_node();
-    node->node_type = NODE_STORE;
-    node->store.is_local = false;
-    node->store.offset = body->offset;
-    node->store.value = expr_node;
-    node->store.value_type = body->value_type;
+    switch (expr_type)
+    {
+    case TYPE_INT:
+        bc_emit(BC_OPCODE_ISTORE);
+        break;
 
-    return node;
+    case TYPE_FLOAT:
+        bc_emit(BC_OPCODE_FSTORE);
+        break;
+    }
+    bc_arg_addr((void*)body->offset);
 }
 
-static TreeNode* stmt() {
+static bool stmt() {
     switch (token.token_type)
     {
     case TOKEN_ID: {
         NameHeader* name = name_find(token.length);
-        if (name == NULL || name->entry_type == NAME_ENTRY_VAR || name->entry_type == NAME_ENTRY_VAR_LOCAL) return stmt_assign(name);
+        if (name == NULL || name->entry_type == NAME_ENTRY_VAR || name->entry_type == NAME_ENTRY_VAR_LOCAL) {
+            stmt_assign(name);
+            return true;
+        }
     } break;
 
     default:
         break;
     }
-    return NULL;
+    return false;
 }
 
-static TreeNode* block_main() {
-    TreeNode* first = NULL;
-    TreeNode* last = NULL;
-
+static void block_main() {
     bool working = true;
 
     while (working) {
-        TreeNode* item = NULL;
-
         switch (token.token_type) {
         case TOKEN_KW_CONST:
             stmt_const();
             break;
         default:
-            item = stmt();
-            if (item == NULL) working = false;
+            working = stmt();
             break;
-        }
-        if (item != NULL) {
-            tree_append(&first, &last, item);
         }
         if (!working) break;
         if (token.token_type == TOKEN_EOF) break;
         expect(TOKEN_NEWLINE);
     }
-    return first;
 }
 
 #pragma endregion
-
-
 
 void parse(char* buffer, char* buffer_end) {
     mem_init(buffer, buffer_end);
     NEXT;
     DataType restype;
-    expr_try_cast(TYPE_INT, &restype);//block_main();
+    block_main();
     bc_debug_print();
 }

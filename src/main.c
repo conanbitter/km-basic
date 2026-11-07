@@ -29,7 +29,7 @@ int main() {
     printf("ExptConst type: %d\n", ((ExptConst*)&test)->node_type);
     printf("ExptLoad type: %d\n", ((ExptLoad*)&test)->node_type);
     printf("ExptNode type: %d\n", ((ExptNode*)&test)->node_type);*/
-    open_file("exprtest.bas");
+    open_file("parsetest.bas");
     /*
         open_file("sample.bas");
         next_token(buffer, 256);
