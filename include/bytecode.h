@@ -99,4 +99,6 @@ void bc_arg_float(KmFloat value);
 void bc_arg_addr(void* value);
 void bc_arg_u2(uint16_t value);
 
+void bc_debug_print();
+
 #endif

@@ -184,3 +184,12 @@ TreeNode* mem_strlit_node(size_t length) {
 
     return node;
 }
+
+void* mem_alloc_right(size_t size) {
+    if ((mem_free_end - size) <= mem_free_start) {
+        printf("Run out of memory");
+        exit(1);
+    }
+    mem_free_end -= size;
+    return mem_free_end;
+}

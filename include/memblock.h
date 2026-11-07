@@ -40,6 +40,7 @@ void mem_init(char* buffer, char* buffer_end);
 
 TreeNode* mem_add_node();
 TreeNode* mem_strlit_node(size_t length);
+void* mem_alloc_right(size_t size);
 
 void name_emplace(size_t length, NameEntryType entry_type, uint16_t decl_line, uint16_t decl_col);
 NameHeader* name_find(size_t length);

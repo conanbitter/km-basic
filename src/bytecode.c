@@ -1,5 +1,6 @@
 #include "bytecode.h"
 #include "stdio.h"
+#include "memblock.h"
 
 static const char* opcodestr[] = {
     "ipow   ",
@@ -92,27 +93,71 @@ void bc_init() {
     addr = 0;
 }
 
+#define BC_APPEND(typename, value) *((typename*)mem_alloc_right(sizeof(typename))) = value
+
 void bc_emit(BcOpcode opcode) {
-    printf("\n %08" PRIXPTR ": %s", addr, opcodestr[opcode]);
-    addr++;
+    BC_APPEND(uint8_t, opcode);
 }
 
 void bc_arg_int(KmInt value) {
-    printf(" %" PRIkmINT, value);
-    addr += sizeof(value);
+    BC_APPEND(KmInt, value);
 }
 
 void bc_arg_float(KmFloat value) {
-    printf(" %f", value);
-    addr += sizeof(value);
+    BC_APPEND(KmFloat, value);
 }
 
 void bc_arg_addr(void* value) {
-    printf(" %p", value);
-    addr += sizeof(value);
+    BC_APPEND(void*, value);
 }
 
 void bc_arg_u2(uint16_t value) {
-    printf(" %" PRIu16, value);
-    addr += sizeof(value);
+    BC_APPEND(uint16_t, value);
+}
+
+void bc_debug_print() {
+    uint8_t* cur = mem_end;
+    uint8_t* end = mem_free_end;
+
+    while (cur >= end)
+    {
+        cur--;
+        BcOpcode opcode = *cur;
+        printf("%p: %s", cur, opcodestr[opcode]);
+
+        if (opcode == BC_OPCODE_IPUSH) {
+            cur -= sizeof(KmInt);
+            KmInt value = *((KmInt*)cur);
+            printf(" %" PRIkmINT, value);
+        }
+
+        if (opcode == BC_OPCODE_FPUSH) {
+            cur -= sizeof(KmFloat);
+            KmFloat value = *((KmFloat*)cur);
+            printf(" %f", value);
+        }
+
+        if (opcode == BC_OPCODE_APUSH || (opcode >= BC_OPCODE_ILOAD && opcode <= BC_OPCODE_CALL)) {
+            cur -= sizeof(void*);
+            void* value = *((void**)cur);
+            printf(" %p", value);
+        }
+
+        if (opcode == BC_OPCODE_SYSCALL) {
+            cur -= sizeof(uint16_t);
+            uint16_t value = *((uint16_t*)cur);
+            printf(" %" PRIu16, value);
+        }
+
+        if (opcode == BC_OPCODE_FRAME) {
+            cur -= sizeof(uint16_t);
+            uint16_t value1 = *((uint16_t*)cur);
+            cur -= sizeof(uint16_t);
+            uint16_t value2 = *((uint16_t*)cur);
+            printf(" %" PRIu16 ", %" PRIu16, value1, value2);
+        }
+
+        printf("\n");
+    }
+
 }

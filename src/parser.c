@@ -4,6 +4,7 @@
 #include "parser.h"
 #include "tree.h"
 #include "memblock.h"
+#include "bytecode.h"
 
 #include <stdbool.h>
 #include <stdalign.h>
@@ -901,4 +902,5 @@ void parse(char* buffer, char* buffer_end) {
     NEXT;
     DataType restype;
     expr_try_cast(TYPE_INT, &restype);//block_main();
+    bc_debug_print();
 }
