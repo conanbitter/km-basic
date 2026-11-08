@@ -36,11 +36,10 @@ extern char* mem_end;
 extern char* mem_free_end;
 extern char* mem_temp;
 
-void mem_init(char* buffer, char* buffer_end);
+
 
 TreeNode* mem_add_node();
 TreeNode* mem_strlit_node(size_t length);
-void* mem_alloc_right(size_t size);
 
 void name_emplace(size_t length, NameEntryType entry_type, uint16_t decl_line, uint16_t decl_col);
 NameHeader* name_find(size_t length);
@@ -49,5 +48,25 @@ void* name_alloc_size(size_t size);
 void* name_get_body(NameHeader* header);
 
 #define NAME_ALLOC(typename) (typename*)name_alloc_size(sizeof(typename))
+
+typedef struct MemRange {
+    char* start;
+    char* end;
+    char* cur_start;
+    char* cur_end;
+} MemRange;
+
+typedef struct StrSlice {
+    char* addr;
+    size_t length;
+} StrSlice;
+
+void mem_init(char* buffer, char* buffer_end);
+MemRange mem_free(MemRange* range);
+void* mem_alloc_left(MemRange* range, size_t size);
+void* mem_alloc_right(MemRange* range, size_t size);
+
+#define MEM_ALLOC_LEFT(typename) ((typename*)mem_alloc_left(sizeof(typename)))
+#define MEM_ALLOC_RIGHT(typename) ((typename*)mem_alloc_right(sizeof(typename)))
 
 #endif

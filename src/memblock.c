@@ -76,7 +76,7 @@ static uint16_t string_hash(const char* string, size_t length) {
     return (uint16_t)((hash >> 16) ^ (hash & 0xFFFFU));
 }
 
-void mem_init(char* buffer, char* buffer_end) {
+void mem_init_old(char* buffer, char* buffer_end) {
     mem_start = buffer;
     mem_end = buffer_end;
     mem_free_start = buffer;
@@ -185,11 +185,58 @@ TreeNode* mem_strlit_node(size_t length) {
     return node;
 }
 
-void* mem_alloc_right(size_t size) {
-    if ((mem_free_end - size) <= mem_free_start) {
+void mem_init(char* buffer, char* buffer_end) {
+    mem_start = buffer;
+    mem_end = buffer_end;
+    mem_free_start = buffer;
+    mem_free_end = buffer_end;
+}
+
+MemRange mem_request() {
+    MemRange result = {
+        .start = mem_start,
+        .end = mem_end,
+        .cur_start = mem_start,
+        .cur_end = mem_end
+    };
+    return result;
+}
+
+MemRange mem_free(MemRange* range) {
+    if (range->start != range->cur_start) {
+#ifndef NDEBUG
+        if (range->cur_start < mem_free_start) {
+            printf("WARNING: trying to free left side memory while not on the top");
+        }
+#endif
+        mem_free_start = range->start;
+    }
+
+    if (range->end != range->cur_end) {
+#ifndef NDEBUG
+        if (range->cur_end > mem_free_end) {
+            printf("WARNING: trying to free right side memory while not on the top");
+        }
+#endif
+        mem_free_end = range->end;
+    }
+}
+
+void* mem_alloc_left(MemRange* range, size_t size) {
+    if ((range->cur_start + size) >= range->cur_end) {
         printf("Run out of memory");
         exit(1);
     }
-    mem_free_end -= size;
-    return mem_free_end;
+    void* res = range->cur_start;
+    range->cur_start += size;
+    return res;
+}
+
+void* mem_alloc_right(MemRange* range, size_t size) {
+    if ((range->cur_end - size) <= range->cur_start) {
+        printf("Run out of memory");
+        exit(1);
+    }
+    range->cur_end -= size;
+    return range->cur_end;
 }
