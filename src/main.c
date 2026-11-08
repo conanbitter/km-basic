@@ -44,8 +44,9 @@ int main() {
             next_token(buffer, 256);
         }
     */
+    mem_init(buffer, buffer + BUFFER_SIZE);
     bc_init();
-    parse(buffer, buffer + BUFFER_SIZE);
+    parse();
     close_file();
     return 0;
 }

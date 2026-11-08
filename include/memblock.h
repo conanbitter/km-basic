@@ -62,7 +62,8 @@ typedef struct StrSlice {
 } StrSlice;
 
 void mem_init(char* buffer, char* buffer_end);
-MemRange mem_free(MemRange* range);
+MemRange mem_request();
+void mem_free(MemRange* range);
 void* mem_alloc_left(MemRange* range, size_t size);
 void* mem_alloc_right(MemRange* range, size_t size);
 

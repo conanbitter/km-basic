@@ -4,8 +4,6 @@
 #include <stdint.h>
 #include "common.h"
 
-#define EXPTREE_SIZE (256)
-
 typedef enum ExptNodeType {
     EXPT_TYPE_ExptBinop,
     EXPT_TYPE_ExptUnop,
@@ -99,7 +97,8 @@ typedef struct ExptNode {
 
 #pragma pack(pop)
 
-uint8_t* expt_init(uint8_t* start);
+void expt_init();
+void expt_finish();
 void* expt_alloc(size_t size, ExptNodeType node_type);
 void exptr_debug_print(void* root);
 uint8_t expt_addr(void* from, void* to);

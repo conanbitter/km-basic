@@ -737,23 +737,33 @@ static ExprResult expr0() {
     return left;
 }
 
-static uint8_t expr_tree[1024];
-
-static void expr() {
-    expt_init(expr_tree);
-    void* root = as_node(expr0());
-    //exptr_debug_print(res);
-    expt_codegen(root);
-}
-
-static void expr_try_cast(DataType target_type, DataType* result_type) {
-    expt_init(expr_tree);
+static DataType expr() {
+    expt_init();
     ExprResult res = expr0();
-    type_cast(&res, target_type);
-    *result_type = res.data_type;
     void* root = as_node(res);
     expt_codegen(root);
-    //return as_code(res);
+    expt_finish();
+    return res.data_type;
+}
+
+static void expr_typed(DataType target_type, Token* stmt) {
+    expt_init();
+    ExprResult res = expr0();
+    type_cast(&res, target_type);
+
+    if (res.data_type != target_type) {
+        printf("[%d:%d] ERROR: expression type mismatch. Type is %s, must be %s.",
+            stmt->line,
+            stmt->col,
+            type2str(res.data_type),
+            type2str(target_type)
+        );
+        exit(1);
+    }
+
+    void* root = as_node(res);
+    expt_codegen(root);
+    expt_finish();
 }
 
 #pragma endregion
@@ -830,22 +840,12 @@ static void stmt_assign(NameHeader* name) {
     }
 
     expect(TOKEN_ID);
+    Token center_token = token;
     expect(TOKEN_EQ);
 
-    DataType expr_type;
-    expr_try_cast(body->value_type, &expr_type);
+    expr_typed(body->value_type, &center_token);
 
-    if (expr_type != body->value_type) {
-
-        printf("[%d:%d] ERROR: Type mismatch. Variable have type %s, but expression have type %s\n",
-            stmt_line,
-            stmt_col,
-            type2str(body->value_type),
-            type2str(expr_type));
-        exit(1);
-    }
-
-    switch (expr_type)
+    switch (body->value_type)
     {
     case TYPE_INT:
         bc_emit(BC_OPCODE_ISTORE);
@@ -895,8 +895,7 @@ static void block_main() {
 
 #pragma endregion
 
-void parse(char* buffer, char* buffer_end) {
-    mem_init(buffer, buffer_end);
+void parse() {
     NEXT;
     DataType restype;
     block_main();

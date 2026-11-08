@@ -202,7 +202,7 @@ MemRange mem_request() {
     return result;
 }
 
-MemRange mem_free(MemRange* range) {
+void mem_free(MemRange* range) {
     if (range->start != range->cur_start) {
 #ifndef NDEBUG
         if (range->cur_start < mem_free_start) {
