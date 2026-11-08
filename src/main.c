@@ -14,6 +14,11 @@
 char buffer[BUFFER_SIZE];
 
 int main() {
+#ifdef NDEBUG
+    printf("Not debug\n");
+#else
+    printf("Debug\n");
+#endif
     /*printf("ExptBinop: %zu\n", sizeof(ExptBinop));
     printf("ExptUnop: %zu\n", sizeof(ExptUnop));
     printf("ExptConst: %zu\n", sizeof(ExptConst));
