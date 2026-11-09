@@ -63,9 +63,10 @@ typedef struct StrSlice {
 
 void mem_init(char* buffer, char* buffer_end);
 MemSegment mem_request();
-void mem_free(MemSegment* range);
-void* mem_alloc_left(MemSegment* range, size_t size);
-void* mem_alloc_right(MemSegment* range, size_t size);
+void mem_free(MemSegment* segment);
+void* mem_alloc_left(MemSegment* segment, size_t size);
+void* mem_alloc_right(MemSegment* segment, size_t size);
+void mem_add_left(MemSegment* segment, char symbol);
 
 #define MEM_ALLOC_LEFT(typename) ((typename*)mem_alloc_left(sizeof(typename)))
 #define MEM_ALLOC_RIGHT(typename) ((typename*)mem_alloc_right(sizeof(typename)))

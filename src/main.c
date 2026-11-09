@@ -14,11 +14,6 @@
 char buffer[BUFFER_SIZE];
 
 int main() {
-#ifdef NDEBUG
-    printf("Not debug\n");
-#else
-    printf("Debug\n");
-#endif
     /*printf("ExptBinop: %zu\n", sizeof(ExptBinop));
     printf("ExptUnop: %zu\n", sizeof(ExptUnop));
     printf("ExptConst: %zu\n", sizeof(ExptConst));
@@ -44,10 +39,17 @@ int main() {
             next_token(buffer, 256);
         }
     */
-    // TODO: Fix lexer to new memory
     mem_init(buffer, buffer + BUFFER_SIZE);
-    bc_init();
-    parse();
+    //bc_init();
+    //parse();
+    next_token();
+    while (token.token_type != TOKEN_EOF)
+    {
+        print_token();
+        printf("\n");
+        next_token();
+    }
+
     close_file();
     return 0;
 }

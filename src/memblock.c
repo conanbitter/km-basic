@@ -253,3 +253,18 @@ void* mem_alloc_right(MemSegment* range, size_t size) {
     mem_free_end = range->cur_end;
     return range->cur_end;
 }
+
+void mem_add_left(MemSegment* range, char symbol) {
+#ifndef NDEBUG
+    if (range->cur_start < mem_free_start) {
+        printf("WARNING: an attempt to left expand a memory segment that is not the topmost one");
+    }
+#endif
+    if ((range->cur_start + 1) >= mem_free_end) {
+        printf("Run out of memory");
+        exit(1);
+    }
+    *range->cur_start = symbol;
+    range->cur_start++;
+    mem_free_start = range->cur_start;
+}

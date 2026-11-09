@@ -2,6 +2,7 @@
 #define LEXER_H
 
 #include "common.h"
+#include "memblock.h"
 
 typedef enum TokenType {
     TOKEN_ERROR = 0,
@@ -90,7 +91,8 @@ typedef struct Token {
     union {
         KmInt int_value;
         KmFloat float_value;
-        size_t length;
+        StrSlice str_value;
+        size_t length; // to delete
     };
 
 } Token;
@@ -99,8 +101,8 @@ extern const char* TOKEN_NAMES[];
 
 void open_file(const char* filename);
 void close_file();
-void next_token(char* buffer, const char* buffer_end);
-void print_token(char* buffer);
+void next_token();
+void print_token();
 
 extern Token token;
 
