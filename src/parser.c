@@ -20,13 +20,11 @@ typedef struct ExprResult {
     };
 } ExprResult;
 
-#define NEXT next_token(mem_temp, mem_free_end)
-
 #pragma region Parser service functions
 
 static void expect(TokenType token_type) {
     if (token.token_type == token_type) {
-        NEXT;
+        next_token();
     } else {
         printf("[%d:%d] ERROR: expected '%s', got '%s'", token.line, token.col, TOKEN_NAMES[token_type], TOKEN_NAMES[token.token_type]);
         exit(1);
@@ -235,14 +233,14 @@ static ExprResult expr13() {
         result.data_type = TYPE_INT;
         result.is_const = true;
         result.int_value = token.int_value;
-        NEXT;
+        next_token();
         return result;
 
     case TOKEN_FLOATLIT:
         result.data_type = TYPE_FLOAT;
         result.is_const = true;
         result.float_value = token.float_value;
-        NEXT;
+        next_token();
         return result;
 
     case TOKEN_STRLIT:
@@ -288,7 +286,7 @@ static ExprResult expr13() {
                 result.float_value = body->value.float_val;
                 break;
             }
-            NEXT;
+            next_token();
             return result;
         }
         case NAME_ENTRY_VAR:
@@ -304,7 +302,7 @@ static ExprResult expr13() {
             result.is_const = false;
             result.node = node;
 
-            NEXT;
+            next_token();
             return result;
         }
         }
@@ -320,18 +318,18 @@ static ExprResult expr13() {
         result.data_type = TYPE_INT;
         result.is_const = true;
         result.int_value = KM_TRUE;
-        NEXT;
+        next_token();
         return result;
 
     case TOKEN_KW_FALSE:
         result.data_type = TYPE_INT;
         result.is_const = true;
         result.int_value = KM_FALSE;
-        NEXT;
+        next_token();
         return result;
 
     case TOKEN_KW_CINT:
-        NEXT;
+        next_token();
         expect(TOKEN_LPAREN);
         result = expr0();
         expect(TOKEN_RPAREN);
@@ -339,7 +337,7 @@ static ExprResult expr13() {
         return result;
 
     case TOKEN_KW_CFLOAT:
-        NEXT;
+        next_token();
         expect(TOKEN_LPAREN);
         result = expr0();
         expect(TOKEN_RPAREN);
@@ -347,7 +345,7 @@ static ExprResult expr13() {
         return result;
 
     case TOKEN_KW_CSTR:
-        NEXT;
+        next_token();
         expect(TOKEN_LPAREN);
         result = expr0();
         expect(TOKEN_RPAREN);
@@ -367,7 +365,7 @@ static ExprResult expr12() {
     while (token.token_type == TOKEN_POWER)
     {
         Token optoken = token;
-        NEXT;
+        next_token();
         ExprResult right = expr13();
 
         check_and_cast(&left, &right, TYPE_INT | TYPE_FLOAT, TYPE_INT | TYPE_FLOAT, &optoken);
@@ -399,13 +397,12 @@ static ExprResult expr11() {
     switch (token.token_type)
     {
     case TOKEN_PLUS:
-        NEXT;
+        next_token();
         return expr12();
-        break;
 
     case TOKEN_MINUS: {
         Token optoken = token;
-        NEXT;
+        next_token();
         ExprResult operand = expr12();
         check_unary(&operand, TYPE_INT | TYPE_FLOAT, &optoken);
 
@@ -433,7 +430,7 @@ static ExprResult expr10() {
     while (token.token_type == TOKEN_MUL || token.token_type == TOKEN_DIV)
     {
         Token optoken = token;
-        NEXT;
+        next_token();
         ExprResult right = expr11();
 
         DataType out_types = token.token_type == TOKEN_MUL ? TYPE_INT | TYPE_FLOAT : TYPE_FLOAT;
@@ -465,7 +462,7 @@ static ExprResult expr9() {
     while (token.token_type == TOKEN_INTDIV)
     {
         Token optoken = token;
-        NEXT;
+        next_token();
         ExprResult right = expr10();
 
         check_and_cast(&left, &right, TYPE_INT | TYPE_FLOAT, TYPE_INT, &optoken);
@@ -486,7 +483,7 @@ static ExprResult expr8() {
     while (token.token_type == TOKEN_KW_MOD)
     {
         Token optoken = token;
-        NEXT;
+        next_token();
         ExprResult right = expr9();
 
         check_and_cast(&left, &right, TYPE_INT | TYPE_FLOAT, TYPE_INT, &optoken);
@@ -507,7 +504,7 @@ static ExprResult expr7() {
     while (token.token_type == TOKEN_PLUS || token.token_type == TOKEN_MINUS)
     {
         Token optoken = token;
-        NEXT;
+        next_token();
         ExprResult right = expr8();
 
         check_and_cast(&left, &right, TYPE_INT | TYPE_FLOAT, TYPE_INT | TYPE_FLOAT, &optoken);
@@ -544,7 +541,7 @@ static ExprResult expr6() {
     while (token.token_type == TOKEN_CONCAT)
     {
         Token optoken = token;
-        NEXT;
+        next_token();
         ExprResult right = expr7();
 
         check_and_cast(&left, &right, TYPE_STRING, TYPE_STRING, &optoken);
@@ -561,7 +558,7 @@ static ExprResult expr5() {
     while (token.token_type == TOKEN_LSHIFT || token.token_type == TOKEN_RSHIFT)
     {
         Token optoken = token;
-        NEXT;
+        next_token();
         ExprResult right = expr6();
 
         check_and_cast(&left, &right, TYPE_INT, TYPE_INT, &optoken);
@@ -588,7 +585,7 @@ static ExprResult expr4() {
     while (token.token_type >= TOKEN_EQ && token.token_type <= TOKEN_LSEQ)
     {
         Token optoken = token;
-        NEXT;
+        next_token();
         ExprResult right = expr5();
 
         check_and_cast(&left, &right, TYPE_INT | TYPE_FLOAT, TYPE_INT | TYPE_FLOAT, &optoken);
@@ -655,7 +652,7 @@ static ExprResult expr4() {
 static ExprResult expr3() {
     if (token.token_type == TOKEN_KW_NOT) {
         Token optoken = token;
-        NEXT;
+        next_token();
         ExprResult operand = expr4();
         check_unary(&operand, TYPE_INT, &optoken);
 
@@ -677,7 +674,7 @@ static ExprResult expr2() {
     while (token.token_type == TOKEN_KW_AND || token.token_type == TOKEN_KW_ANDALSO)
     {
         Token optoken = token;
-        NEXT;
+        next_token();
         ExprResult right = expr3();
 
         check_and_cast(&left, &right, TYPE_INT, TYPE_INT, &optoken);
@@ -700,7 +697,7 @@ static ExprResult expr1() {
     while (token.token_type == TOKEN_KW_OR || token.token_type == TOKEN_KW_ORELSE)
     {
         Token optoken = token;
-        NEXT;
+        next_token();
         ExprResult right = expr2();
 
         check_and_cast(&left, &right, TYPE_INT, TYPE_INT, &optoken);
@@ -723,7 +720,7 @@ static ExprResult expr0() {
     while (token.token_type == TOKEN_KW_XOR)
     {
         Token optoken = token;
-        NEXT;
+        next_token();
         ExprResult right = expr1();
 
         check_and_cast(&left, &right, TYPE_INT, TYPE_INT, &optoken);
@@ -896,8 +893,7 @@ static void block_main() {
 #pragma endregion
 
 void parse() {
-    NEXT;
-    DataType restype;
+    next_token();
     block_main();
     bc_debug_print();
 }
