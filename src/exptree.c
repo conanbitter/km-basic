@@ -3,18 +3,18 @@
 #include "bytecode.h"
 #include "memblock.h"
 
-static MemRange range;
+static MemSegment expt_seg;
 
 void expt_init() {
-    range = mem_request();
+    expt_seg = mem_request();
 }
 
 void expt_finish() {
-    mem_free(&range);
+    mem_free(&expt_seg);
 }
 
 void* expt_alloc(size_t size, ExptNodeType node_type) {
-    ExptNode* body = (ExptNode*)mem_alloc_left(&range, size);
+    ExptNode* body = (ExptNode*)mem_alloc_left(&expt_seg, size);
     body->node_type = node_type;
     return body;
 }
@@ -152,9 +152,9 @@ static const char* unopstr[] = {
 
 void exptr_debug_print(void* root) {
 #ifndef NDEBUG
-    ExptNode* end = (ExptNode*)range.cur_start;
-    ExptNode* cur = (ExptNode*)range.start;
-    uintptr_t _start = (uintptr_t)range.start;
+    ExptNode* end = (ExptNode*)expt_seg.cur_start;
+    ExptNode* cur = (ExptNode*)expt_seg.start;
+    uintptr_t _start = (uintptr_t)expt_seg.start;
 
     printf("     root = %" PRIuPTR "\n\n", (uintptr_t)root - _start);
 
@@ -166,7 +166,7 @@ void exptr_debug_print(void* root) {
         case EXPT_TYPE_ExptBinop:
         {
             ExptBinop* node = (ExptBinop*)cur;
-            uintptr_t from = (uintptr_t)cur - (uintptr_t)range.start;
+            uintptr_t from = (uintptr_t)cur - (uintptr_t)expt_seg.start;
             printf("binop %s %" PRIuPTR ", %" PRIuPTR "\n", binopstr[node->opcode], from - (uintptr_t)node->left, from - (uintptr_t)node->right);
             cur += sizeof(ExptBinop);
         }
@@ -175,7 +175,7 @@ void exptr_debug_print(void* root) {
         case EXPT_TYPE_ExptUnop:
         {
             ExptUnop* node = (ExptUnop*)cur;
-            uintptr_t from = (uintptr_t)cur - (uintptr_t)range.start;
+            uintptr_t from = (uintptr_t)cur - (uintptr_t)expt_seg.start;
             printf("unop  %s %" PRIuPTR "\n", unopstr[node->opcode], from - (uintptr_t)node->arg);
             cur += sizeof(ExptUnop);
         }

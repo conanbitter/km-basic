@@ -49,12 +49,12 @@ void* name_get_body(NameHeader* header);
 
 #define NAME_ALLOC(typename) (typename*)name_alloc_size(sizeof(typename))
 
-typedef struct MemRange {
+typedef struct MemSegment {
     char* start;
     char* end;
     char* cur_start;
     char* cur_end;
-} MemRange;
+} MemSegment;
 
 typedef struct StrSlice {
     char* addr;
@@ -62,10 +62,10 @@ typedef struct StrSlice {
 } StrSlice;
 
 void mem_init(char* buffer, char* buffer_end);
-MemRange mem_request();
-void mem_free(MemRange* range);
-void* mem_alloc_left(MemRange* range, size_t size);
-void* mem_alloc_right(MemRange* range, size_t size);
+MemSegment mem_request();
+void mem_free(MemSegment* range);
+void* mem_alloc_left(MemSegment* range, size_t size);
+void* mem_alloc_right(MemSegment* range, size_t size);
 
 #define MEM_ALLOC_LEFT(typename) ((typename*)mem_alloc_left(sizeof(typename)))
 #define MEM_ALLOC_RIGHT(typename) ((typename*)mem_alloc_right(sizeof(typename)))

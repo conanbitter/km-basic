@@ -44,6 +44,7 @@ int main() {
             next_token(buffer, 256);
         }
     */
+    // TODO: Fix lexer to new memory
     mem_init(buffer, buffer + BUFFER_SIZE);
     bc_init();
     parse();

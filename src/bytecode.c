@@ -88,14 +88,14 @@ static const char* opcodestr[] = {
 };
 
 static uintptr_t addr;
-static MemRange range;
+static MemSegment bc_seg;
 
 void bc_init() {
     addr = 0;
-    range = mem_request();
+    bc_seg = mem_request();
 }
 
-#define BC_APPEND(typename, value) *((typename*)mem_alloc_right(&range, sizeof(typename))) = value
+#define BC_APPEND(typename, value) *((typename*)mem_alloc_right(&bc_seg, sizeof(typename))) = value
 
 void bc_emit(BcOpcode opcode) {
     BC_APPEND(uint8_t, opcode);
@@ -118,8 +118,8 @@ void bc_arg_u2(uint16_t value) {
 }
 
 void bc_debug_print() {
-    uint8_t* cur = range.end;
-    uint8_t* end = range.cur_end;
+    uint8_t* cur = bc_seg.end;
+    uint8_t* end = bc_seg.cur_end;
 
     while (cur >= end)
     {
