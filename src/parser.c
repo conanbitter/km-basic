@@ -225,7 +225,7 @@ static ExprResult unop_expr(ExprResult operand, ExptUnopCode opcode) {
 static ExprResult expr0();
 
 static ExprResult expr13() {
-    ExprResult result;
+    ExprResult result = { 0 };
     switch (token.token_type)
     {
     case TOKEN_INTLIT:
@@ -362,6 +362,7 @@ static ExprResult expr13() {
         unexpected();
         break;
     }
+    return result;
 }
 
 // ^ (power)
