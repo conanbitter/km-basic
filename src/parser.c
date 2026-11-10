@@ -2,7 +2,6 @@
 #include "exptree.h"
 #include "lexer.h"
 #include "parser.h"
-#include "tree.h"
 #include "memblock.h"
 #include "bytecode.h"
 
@@ -243,12 +242,19 @@ static ExprResult expr13() {
         next_token();
         return result;
 
-    case TOKEN_STRLIT:
-        /*result.data_type = TYPE_STRING;
+    case TOKEN_STRLIT: {
+        char* strlit = bc_emit_strlit(token.str_value);
+
+        ExptConst* node = EXPT_NODE(ExptConst);
+        node->valtype = TYPE_STRING;
+        node->value.str_val = strlit;
+
+        result.data_type = TYPE_STRING;
         result.is_const = false;
-        result.node = mem_strlit_node(token.length);
-        NEXT;*/
+        result.node = node;
+        next_token();
         return result;
+    }
 
     case TOKEN_ID: {
         /*DataType var_type = get_type_by_name(mem_temp, token.length);
@@ -386,7 +392,7 @@ static ExprResult expr12() {
                 left.float_value = powf(left.float_value, right.float_value);
             }
         } else {
-            left = binop_expr(left, right, left.data_type == TYPE_INT ? BINOP_IPOWER : BINOP_FPOWER);
+            left = binop_expr(left, right, left.data_type == TYPE_INT ? EXPT_BINOP_IPOWER : EXPT_BINOP_FPOWER);
         }
     }
     return left;
@@ -414,7 +420,7 @@ static ExprResult expr11() {
             }
             return operand;
         } else {
-            return unop_expr(operand, UNOP_NEG);
+            return unop_expr(operand, operand.data_type == TYPE_INT ? EXPT_UNOP_INEG : EXPT_UNOP_FNEG);
         }
     }
 
@@ -448,7 +454,7 @@ static ExprResult expr10() {
             }
         } else {
             DataType op_type = optoken.token_type == TOKEN_MUL ?
-                (left.data_type == TYPE_INT ? BINOP_IMUL : BINOP_FMUL) : BINOP_FDIV;
+                (left.data_type == TYPE_INT ? EXPT_BINOP_IMUL : EXPT_BINOP_FMUL) : EXPT_BINOP_FDIV;
             left = binop_expr(left, right, op_type);
         }
     }
@@ -470,7 +476,7 @@ static ExprResult expr9() {
         if (left.is_const && right.is_const) {
             left.int_value /= right.int_value;
         } else {
-            left = binop_expr(left, right, BINOP_IDIV);
+            left = binop_expr(left, right, EXPT_BINOP_IDIV);
         }
     }
     return left;
@@ -491,7 +497,7 @@ static ExprResult expr8() {
         if (left.is_const && right.is_const) {
             left.int_value %= right.int_value;
         } else {
-            left = binop_expr(left, right, BINOP_MOD);
+            left = binop_expr(left, right, EXPT_BINOP_MOD);
         }
     }
     return left;
@@ -525,8 +531,8 @@ static ExprResult expr7() {
             }
         } else {
             DataType op_type = left.data_type == TYPE_INT ?
-                (optoken.token_type == TOKEN_PLUS ? BINOP_IADD : BINOP_ISUB) :
-                (optoken.token_type == TOKEN_PLUS ? BINOP_FADD : BINOP_FSUB);
+                (optoken.token_type == TOKEN_PLUS ? EXPT_BINOP_IADD : EXPT_BINOP_ISUB) :
+                (optoken.token_type == TOKEN_PLUS ? EXPT_BINOP_FADD : EXPT_BINOP_FSUB);
 
             left = binop_expr(left, right, op_type);
         }
@@ -546,7 +552,7 @@ static ExprResult expr6() {
 
         check_and_cast(&left, &right, TYPE_STRING, TYPE_STRING, &optoken);
 
-        left = binop_expr(left, right, BINOP_CONCAT);
+        left = binop_expr(left, right, EXPT_BINOP_CONCAT);
     }
     return left;
 }
@@ -570,14 +576,28 @@ static ExprResult expr5() {
                 left.int_value >>= right.int_value;
             }
         } else {
-            left = binop_expr(left, right, optoken.token_type == TOKEN_LSHIFT ? BINOP_LSHIFT : BINOP_RSHIFT);
+            left = binop_expr(left, right, optoken.token_type == TOKEN_LSHIFT ? EXPT_BINOP_LSHIFT : EXPT_BINOP_RSHIFT);
         }
     }
     return left;
 }
 
-static const ExprOpType comp_ops_int[] = { BINOP_IEQ, BINOP_INEQ, BINOP_IGT, BINOP_IGTEQ, BINOP_ILS, BINOP_ILSEQ };
-static const ExprOpType comp_ops_float[] = { BINOP_FEQ, BINOP_FNEQ, BINOP_FGT, BINOP_FGTEQ, BINOP_FLS, BINOP_FLSEQ };
+static const ExptBinopCode comp_ops_int[] = {
+    EXPT_BINOP_IEQ,
+    EXPT_BINOP_INEQ,
+    EXPT_BINOP_IGT,
+    EXPT_BINOP_IGTEQ,
+    EXPT_BINOP_ILS,
+    EXPT_BINOP_ILSEQ
+};
+static const ExptBinopCode comp_ops_float[] = {
+    EXPT_BINOP_FEQ,
+    EXPT_BINOP_FNEQ,
+    EXPT_BINOP_FGT,
+    EXPT_BINOP_FGTEQ,
+    EXPT_BINOP_FLS,
+    EXPT_BINOP_FLSEQ
+};
 // = <> > >= < <=
 static ExprResult expr4() {
     ExprResult left = expr5();
@@ -638,7 +658,7 @@ static ExprResult expr4() {
                 }
             }
         } else {
-            ExprOpType op_type = left.data_type == TYPE_INT ?
+            ExptBinopCode op_type = left.data_type == TYPE_INT ?
                 comp_ops_int[optoken.token_type - TOKEN_EQ] :
                 comp_ops_float[optoken.token_type - TOKEN_EQ];
 
@@ -660,7 +680,7 @@ static ExprResult expr3() {
             operand.int_value = ~operand.int_value;
             return operand;
         } else {
-            return unop_expr(operand, UNOP_NOT);
+            return unop_expr(operand, EXPT_UNOP_NOT);
         }
     } else {
         return expr4();
@@ -684,7 +704,7 @@ static ExprResult expr2() {
         if (left.is_const && right.is_const) {
             left.int_value &= right.int_value;
         } else {
-            left = binop_expr(left, right, optoken.token_type == TOKEN_KW_AND ? BINOP_AND : BINOP_ANDSC);
+            left = binop_expr(left, right, optoken.token_type == TOKEN_KW_AND ? EXPT_BINOP_AND : EXPT_BINOP_ANDSC);
         }
     }
     return left;
@@ -707,7 +727,7 @@ static ExprResult expr1() {
         if (left.is_const && right.is_const) {
             left.int_value |= right.int_value;
         } else {
-            left = binop_expr(left, right, optoken.token_type == TOKEN_KW_OR ? BINOP_OR : BINOP_ORSC);
+            left = binop_expr(left, right, optoken.token_type == TOKEN_KW_OR ? EXPT_BINOP_OR : EXPT_BINOP_ORSC);
         }
     }
     return left;
@@ -728,7 +748,7 @@ static ExprResult expr0() {
         if (left.is_const && right.is_const) {
             left.int_value ^= right.int_value;
         } else {
-            left = binop_expr(left, right, BINOP_XOR);
+            left = binop_expr(left, right, EXPT_BINOP_XOR);
         }
     }
     return left;
@@ -739,6 +759,7 @@ static DataType expr() {
     ExprResult res = expr0();
     void* root = as_node(res);
     expt_codegen(root);
+    //exptr_debug_print(root);
     expt_finish();
     return res.data_type;
 }
@@ -894,6 +915,8 @@ static void block_main() {
 
 void parse() {
     next_token();
-    block_main();
+    //block_main();
+    expr();
+    //bc_emit(BC_OPCODE_IADD);
     bc_debug_print();
 }

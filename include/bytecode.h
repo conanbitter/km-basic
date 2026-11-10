@@ -2,6 +2,7 @@
 #define BYTECODE_H
 
 #include "common.h"
+#include "memblock.h"
 
 typedef enum BcOpcode {
     // size: 1 byte
@@ -110,6 +111,7 @@ void bc_arg_int(KmInt value);
 void bc_arg_float(KmFloat value);
 void bc_arg_addr(void* value);
 void bc_arg_u2(uint16_t value);
+char* bc_emit_strlit(StrSlice str);
 
 void bc_debug_print();
 

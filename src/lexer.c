@@ -451,7 +451,7 @@ void next_token() {
         skip_spaces();
         if (curchar == '\'') {
             skip_comment();
-            break;
+            continue;
         }
 
         begin_token();

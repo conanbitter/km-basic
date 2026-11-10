@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stddef.h>
+#include <string.h>
 
 #include "bytecode.h"
 #include "stdio.h"
@@ -122,15 +123,25 @@ void bc_arg_u2(uint16_t value) {
     BC_APPEND(uint16_t, value);
 }
 
-void bc_emit_strlit(StrSlice str) {
-
+char* bc_emit_strlit(StrSlice str) {
+    bc_emit(BC_OPCODE_STRLIT);
+    BC_APPEND(uint16_t, 0);
+    uint16_t* total_length = (uint16_t*)bc_seg.cur_end;
+    char* dest = bc_seg.cur_end = (char*)ALIGN_DOWN((uintptr_t)bc_seg.cur_end - str.length);
+    BcStrlit* head = (BcStrlit*)mem_alloc_right(&bc_seg, sizeof(BcStrlit));
+    memmove(dest, str.addr, str.length);
+    head->length = str.length;
+    head->prev = NULL;
+    head->hash = 0;
+    *total_length = (uintptr_t)total_length - (uintptr_t)bc_seg.cur_end;
+    return dest;
 }
 
 void bc_debug_print() {
     uint8_t* cur = bc_seg.end;
     uint8_t* end = bc_seg.cur_end;
 
-    while (cur >= end)
+    while (cur > end)
     {
         cur--;
         BcOpcode opcode = *cur;
@@ -166,6 +177,15 @@ void bc_debug_print() {
             cur -= sizeof(uint16_t);
             uint16_t value2 = *((uint16_t*)cur);
             printf(" %" PRIu16 ", %" PRIu16, value1, value2);
+        }
+
+        if (opcode == BC_OPCODE_STRLIT) {
+            cur -= sizeof(uint16_t);
+            uint16_t total_length = *((uint16_t*)cur);
+            cur -= total_length;
+            BcStrlit* head = (BcStrlit*)(cur);
+            char* str = cur + sizeof(BcStrlit);
+            printf(" \"%.*s\" (hash: %04X)", head->length, str, head->hash);
         }
 
         printf("\n");

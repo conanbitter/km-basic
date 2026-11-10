@@ -73,6 +73,11 @@ void expt_codegen(void* root) {
             bc_arg_float(node->value.float_val);
             break;
 
+        case TYPE_STRING:
+            bc_emit(BC_OPCODE_APUSH);
+            bc_arg_addr(node->value.str_val);
+            break;
+
         default:
             break;
         }
@@ -192,6 +197,10 @@ void exptr_debug_print(void* root) {
 
             case TYPE_FLOAT:
                 printf("floatlit  %f\n", node->value.float_val);
+                break;
+
+            case TYPE_STRING:
+                printf("strlit    %zu\n", node->value.str_val);
                 break;
 
             default:

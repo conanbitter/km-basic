@@ -84,7 +84,7 @@ void mem_init_old(char* buffer, char* buffer_end) {
     mem_free_end = buffer_end;
     mem_temp = buffer + sizeof(NameHeader);
     name_prev = NULL;
-    tree_last_strlit = NULL;
+    //tree_last_strlit = NULL;
 }
 
 void name_emplace(size_t length, NameEntryType entry_type, uint16_t decl_line, uint16_t decl_col) {

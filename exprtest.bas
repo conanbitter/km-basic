@@ -1,1 +1,1 @@
-b + a# * 2 + c# * (3 + b)
+"This is a string" & "and" & "or" & "and"'b + a# * 2 + c# * (3 + b)
