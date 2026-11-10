@@ -4,6 +4,9 @@ project(kmbasic VERSION 0.1 LANGUAGES C)
 
 set(EXECUTABLE_OUTPUT_PATH ./${CMAKE_BUILD_TYPE})
 
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+
 set(INCLUDE_FILES
     common.h
     lexer.h

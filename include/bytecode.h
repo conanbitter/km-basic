@@ -92,6 +92,18 @@ typedef enum BcOpcode {
     BC_OPCODE_STRLIT,
 } BcOpcode;
 
+#define _BC_STRLIT_BASE (BYTE_ALIGN + 2)
+#define _BC_STRLIT_PADDING (ALIGN_UP(_BC_STRLIT_BASE) - 2 - _BC_STRLIT_BASE)
+
+typedef struct BcStrlit {
+    struct BcStrlit* prev;
+    uint16_t hash;
+#if _BC_STRLIT_PADDING > 0
+    char _padding[_BC_STRLIT_PADDING];
+#endif
+    uint16_t length;
+} BcStrlit;
+
 void bc_init();
 void bc_emit(BcOpcode opcode);
 void bc_arg_int(KmInt value);

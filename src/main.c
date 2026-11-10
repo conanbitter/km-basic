@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stddef.h>
 
 #include "common.h"
 #include "lexer.h"
@@ -29,6 +30,9 @@ int main() {
     printf("ExptConst type: %d\n", ((ExptConst*)&test)->node_type);
     printf("ExptLoad type: %d\n", ((ExptLoad*)&test)->node_type);
     printf("ExptNode type: %d\n", ((ExptNode*)&test)->node_type);*/
+    //printf("BcStrit size is: %zu\n", sizeof(BcStrlit));
+    //printf("len offset is %d, (%d from end)\n", offsetof(BcStrlit, length), sizeof(BcStrlit) - offsetof(BcStrlit, length));
+    //printf("asdas %d", _BC_STRLIT_PADDING);
     open_file("parsetest.bas");
     /*
         open_file("sample.bas");
@@ -45,8 +49,8 @@ int main() {
     next_token();
     while (token.token_type != TOKEN_EOF)
     {
-        print_token();
-        printf("\n");
+        //print_token();
+        //printf("\n");
         next_token();
     }
 

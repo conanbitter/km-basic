@@ -1,6 +1,11 @@
+#include <assert.h>
+#include <stddef.h>
+
 #include "bytecode.h"
 #include "stdio.h"
 #include "memblock.h"
+
+static_assert(offsetof(BcStrlit, length) == sizeof(BcStrlit) - sizeof(uint16_t), "length field must remain at the end of BcStrlit!");
 
 static const char* opcodestr[] = {
     "ipow   ",
@@ -115,6 +120,10 @@ void bc_arg_addr(void* value) {
 
 void bc_arg_u2(uint16_t value) {
     BC_APPEND(uint16_t, value);
+}
+
+void bc_emit_strlit(StrSlice str) {
+
 }
 
 void bc_debug_print() {
