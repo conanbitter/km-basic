@@ -32,3 +32,21 @@ const char* type2str(DataType datatype) {
     default: return "UNKNOWN";
     }
 }
+
+#define FNV_PRIME 16777619U
+#define FNV_OFFSET_BASIS 2166136261U
+
+uint16_t string_hash(const char* string, size_t length) {
+    // FNV-1a hashing with folding to 16 bit
+
+    uint32_t hash = FNV_OFFSET_BASIS;
+
+    while (length > 0) {
+        hash ^= (uint32_t)(unsigned char)(*string);
+        hash *= FNV_PRIME;
+        string++;
+        length--;
+    }
+
+    return (uint16_t)((hash >> 16) ^ (hash & 0xFFFFU));
+}

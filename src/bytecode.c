@@ -124,6 +124,8 @@ void bc_arg_u2(uint16_t value) {
 }
 
 char* bc_emit_strlit(StrSlice str) {
+    uint16_t new_hash = string_hash(str.addr, str.length);
+
     bc_emit(BC_OPCODE_STRLIT);
     BC_APPEND(uint16_t, 0);
     uint16_t* total_length = (uint16_t*)bc_seg.cur_end;
@@ -132,7 +134,7 @@ char* bc_emit_strlit(StrSlice str) {
     memmove(dest, str.addr, str.length);
     head->length = str.length;
     head->prev = NULL;
-    head->hash = 0;
+    head->hash = new_hash;
     *total_length = (uintptr_t)total_length - (uintptr_t)bc_seg.cur_end;
     return dest;
 }

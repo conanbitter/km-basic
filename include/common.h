@@ -48,5 +48,6 @@ const KmInt KM_FALSE;
 
 int ipow(KmInt base, KmInt exp);
 const char* type2str(DataType datatype);
+uint16_t string_hash(const char* string, size_t length);
 
 #endif

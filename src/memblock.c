@@ -40,9 +40,6 @@ During execution:
 #include <string.h>
 #include <stdio.h>
 
-#define FNV_PRIME 16777619U
-#define FNV_OFFSET_BASIS 2166136261U
-
 const uintptr_t ptr_alignment = _Alignof(KmInt);
 
 char* mem_start;
@@ -60,21 +57,6 @@ static char* align_ptr(char* ptr) {
     uintptr_t intptr = (uintptr_t)ptr;
     uintptr_t result = (intptr + ptr_alignment - 1) & ~(ptr_alignment - 1);
     return (char*)result;
-}
-
-static uint16_t string_hash(const char* string, size_t length) {
-    // FNV-1a hashing with folding to 16 bit
-
-    uint32_t hash = FNV_OFFSET_BASIS;
-
-    while (length > 0) {
-        hash ^= (uint32_t)(unsigned char)(*string);
-        hash *= FNV_PRIME;
-        string++;
-        length--;
-    }
-
-    return (uint16_t)((hash >> 16) ^ (hash & 0xFFFFU));
 }
 
 void mem_init_old(char* buffer, char* buffer_end) {
