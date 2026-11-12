@@ -50,6 +50,25 @@ static DataType get_type_by_name(char* name, size_t name_len) {
 
 // SERVICE FUNCTIONS
 
+static void* as_node(ExprResult res) {
+    if (!res.is_const) return res.node;
+
+    ExptConst* node = EXPT_NODE(ExptConst);
+    switch (res.data_type)
+    {
+    case TYPE_INT:
+        node->valtype = TYPE_INT;
+        node->value.int_val = res.int_value;
+        break;
+    case TYPE_FLOAT:
+        node->valtype = TYPE_FLOAT;
+        node->value.float_val = res.float_value;
+        break;
+    }
+
+    return node;
+}
+
 static void int2float(ExprResult* res) {
     res->data_type = TYPE_FLOAT;
     if (res->is_const) {
@@ -76,6 +95,18 @@ static void float2int(ExprResult* res) {
     }
 }
 
+static void type2type(ExprResult* res, DataType target_type, ExptUnopCode opcode) {
+    void* input_node = as_node(*res);
+    res->data_type = target_type;
+    res->is_const = false;
+
+    ExptUnop* node = EXPT_NODE(ExptUnop);
+    node->opcode = opcode;
+    node->arg = expt_addr(node, input_node);
+
+    res->node = node;
+}
+
 static void type_cast(ExprResult* res, DataType target_type) {
     switch (target_type)
     {
@@ -86,10 +117,7 @@ static void type_cast(ExprResult* res, DataType target_type) {
             float2int(res);
             break;
         case TYPE_STRING:
-            /*res->data_type = TYPE_INT;
-            res->is_const = false;
-            res->node = mem_add_node();
-            res->node->node_type = NODE_DUMMY;*/
+            type2type(res, target_type, EXPT_UNOP_STOI);
             break;
         }
         break;
@@ -101,51 +129,23 @@ static void type_cast(ExprResult* res, DataType target_type) {
             int2float(res);
             break;
         case TYPE_STRING:
-            /*res->data_type = TYPE_FLOAT;
-            res->is_const = false;
-            res->node = mem_add_node();
-            res->node->node_type = NODE_DUMMY;*/
+            type2type(res, target_type, EXPT_UNOP_STOF);
             break;
         }
         break;
 
-        /*case TYPE_STRING:
-            switch (res->data_type)
-            {
-            case TYPE_INT:
-                res->data_type = TYPE_STRING;
-                res->is_const = false;
-                res->node = mem_add_node();
-                res->node->node_type = NODE_DUMMY;
-                break;
-            case TYPE_FLOAT:
-                res->data_type = TYPE_STRING;
-                res->is_const = false;
-                res->node = mem_add_node();
-                res->node->node_type = NODE_DUMMY;
-                break;
-            }
-            break;*/
-    }
-}
-
-static void* as_node(ExprResult res) {
-    if (!res.is_const) return res.node;
-
-    ExptConst* node = EXPT_NODE(ExptConst);
-    switch (res.data_type)
-    {
-    case TYPE_INT:
-        node->valtype = TYPE_INT;
-        node->value.int_val = res.int_value;
-        break;
-    case TYPE_FLOAT:
-        node->valtype = TYPE_FLOAT;
-        node->value.float_val = res.float_value;
+    case TYPE_STRING:
+        switch (res->data_type)
+        {
+        case TYPE_INT:
+            type2type(res, target_type, EXPT_UNOP_ITOS);
+            break;
+        case TYPE_FLOAT:
+            type2type(res, target_type, EXPT_UNOP_FTOS);
+            break;
+        }
         break;
     }
-
-    return node;
 }
 
 static void check_and_cast(ExprResult* left, ExprResult* right, DataType in_types, DataType out_types, Token* optoken) {
@@ -257,15 +257,6 @@ static ExprResult expr13() {
     }
 
     case TOKEN_ID: {
-        /*DataType var_type = get_type_by_name(mem_temp, token.length);
-        ExptLoad* node = EXPT_NODE(ExptLoad);
-        node->datatype = var_type;
-        result.data_type = var_type;
-        result.is_const = false;
-        result.node = node;
-        NEXT;
-        return result;*/
-
         NameHeader* id = name_find(token.length);
         if (id == NULL) {
             printf("[%d:%d] ERROR: identifier '%.*s' not found\n",
@@ -759,8 +750,8 @@ static DataType expr() {
     expt_init();
     ExprResult res = expr0();
     void* root = as_node(res);
-    expt_codegen(root);
     //exptr_debug_print(root);
+    expt_codegen(root);
     expt_finish();
     return res.data_type;
 }

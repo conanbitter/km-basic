@@ -21,12 +21,12 @@ void* expt_alloc(size_t size, ExptNodeType node_type) {
 
 uint8_t expt_addr(void* from, void* to) {
     uintptr_t addr = (uintptr_t)from - (uintptr_t)to;
-    if (addr > 255) {
+    /*if (addr > 255) {
         printf("[%d:%d] ERROR: expression is to complex",
             token.line,
             token.col
         );
-    }
+    }*/
     return (uint8_t)addr;
 }
 
@@ -150,7 +150,11 @@ static const char* unopstr[] = {
     "NEG",
     "NOT",
     "I2F",
-    "F2I"
+    "F2I",
+    "I2S",
+    "S2I",
+    "F2S",
+    "S2F",
 };
 
 #endif

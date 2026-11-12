@@ -53,7 +53,11 @@ typedef enum ExptUnopCode {
     EXPT_UNOP_FNEG,
     EXPT_UNOP_NOT,
     EXPT_UNOP_ITOF,
-    EXPT_UNOP_FTOI
+    EXPT_UNOP_FTOI,
+    EXPT_UNOP_ITOS,
+    EXPT_UNOP_STOI,
+    EXPT_UNOP_FTOS,
+    EXPT_UNOP_STOF,
 } ExptUnopCode;
 
 #pragma pack(push, 1)
