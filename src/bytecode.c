@@ -95,10 +95,12 @@ static const char* opcodestr[] = {
 
 static uintptr_t addr;
 static MemSegment bc_seg;
+static BcStrlit* last_strlit = NULL;
 
 void bc_init() {
     addr = 0;
     bc_seg = mem_request();
+    last_strlit = NULL;
 }
 
 #define BC_APPEND(typename, value) *((typename*)mem_alloc_right(&bc_seg, sizeof(typename))) = value
@@ -126,6 +128,19 @@ void bc_arg_u2(uint16_t value) {
 char* bc_emit_strlit(StrSlice str) {
     uint16_t new_hash = string_hash(str.addr, str.length);
 
+    // duplicate elimination
+    BcStrlit* cur = last_strlit;
+    while (cur != NULL)
+    {
+        if (cur->length == str.length && cur->hash == new_hash) {
+            char* old_string = (char*)(cur + 1);
+            if (memcmp(str.addr, old_string, str.length) == 0) {
+                return old_string;
+            }
+        }
+        cur = cur->prev;
+    }
+
     bc_emit(BC_OPCODE_STRLIT);
     BC_APPEND(uint16_t, 0);
     uint16_t* total_length = (uint16_t*)bc_seg.cur_end;
@@ -133,9 +148,12 @@ char* bc_emit_strlit(StrSlice str) {
     BcStrlit* head = (BcStrlit*)mem_alloc_right(&bc_seg, sizeof(BcStrlit));
     memmove(dest, str.addr, str.length);
     head->length = str.length;
-    head->prev = NULL;
+    head->prev = last_strlit;
     head->hash = new_hash;
     *total_length = (uintptr_t)total_length - (uintptr_t)bc_seg.cur_end;
+
+    last_strlit = head;
+
     return dest;
 }
 
