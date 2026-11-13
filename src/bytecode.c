@@ -56,6 +56,7 @@ static const char* opcodestr[] = {
     "istorep",
     "fstorep",
     "astorep",
+    "strcopy",
     "dup    ",
     "drop   ",
     "ret    ",
