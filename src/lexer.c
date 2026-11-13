@@ -1,5 +1,6 @@
 #include "common.h"
 #include "lexer.h"
+#include "nametable.h"
 
 #include <stddef.h>
 #include <stdio.h>
@@ -397,14 +398,9 @@ static void set_token_float(TokenType token_type, KmFloat value) {
     token.float_value = value;
 }
 
-static void set_token_str(TokenType token_type) {
+static void set_token_str(TokenType token_type, StrSlice value) {
     set_token(token_type);
-    token.str_value.addr = string_buffer.start;
-    if (token_type == TOKEN_ID) {
-        token.str_value.length = string_buffer.cur_start - string_buffer.start - 1;
-    } else {
-        token.str_value.length = string_buffer.cur_start - string_buffer.start;
-    }
+    token.str_value = value;
 }
 
 static bool is_alpha(char symbol) {
@@ -521,22 +517,22 @@ void next_token() {
         case '"': {
             string_buffer = mem_request();
             next_char();
-            size_t length = 0;
+            StrSlice text = { .addr = string_buffer.cur_start, .length = 0 };
             while (curchar != '\0')
             {
                 if (curchar == '"') {
                     next_char();
                     if (curchar == '"') {
                         add_char('"');
-                        length++;
+                        text.length++;
                         next_char();
                     } else {
-                        set_token_str(TOKEN_STRLIT);
+                        set_token_str(TOKEN_STRLIT, text);
                         break;
                     }
                 } else {
                     copy_char();
-                    length++;
+                    text.length++;
                 }
             }
             mem_free(&string_buffer);
@@ -546,7 +542,8 @@ void next_token() {
         default:
             if (is_alpha(curchar)) {
                 string_buffer = mem_request();
-                size_t length = 0;
+                mem_alloc_left(&string_buffer, sizeof(NtHeader));
+                StrSlice name = { .addr = string_buffer.cur_start, .length = 0 };
                 while (is_alphanum(curchar))
                 {
                     if (curchar >= 'a' && curchar <= 'z') {
@@ -555,14 +552,14 @@ void next_token() {
                     } else {
                         copy_char();
                     }
-                    length++;
+                    name.length++;
                 }
                 if (curchar == '#' || curchar == '$') {
                     copy_char();
-                    length++;
+                    name.length++;
                 }
                 // newline skipper
-                if (length == 1 && *string_buffer.start == '_' && was_spaces) {
+                if (name.length == 1 && *(name.addr) == '_' && was_spaces) {
                     if (curchar == '\r' || curchar == '\n') {
                         skip_newlines();
                         break;
@@ -570,14 +567,15 @@ void next_token() {
                 }
 
                 add_char('\0');
-                TokenType kw = check_keyword(string_buffer.start);
+                TokenType kw = check_keyword(name.addr);
                 if (kw == TOKEN_KW_REM) {
                     skip_comment();
                     break;
                 } else if (kw != TOKEN_ERROR) {
                     set_token(kw);
                 } else {
-                    set_token_str(TOKEN_ID);
+                    name.length--;
+                    set_token_str(TOKEN_ID, name);
                 }
             } else if (is_numeric(curchar)) {
                 string_buffer = mem_request();
