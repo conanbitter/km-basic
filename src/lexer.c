@@ -400,7 +400,11 @@ static void set_token_float(TokenType token_type, KmFloat value) {
 static void set_token_str(TokenType token_type) {
     set_token(token_type);
     token.str_value.addr = string_buffer.start;
-    token.str_value.length = string_buffer.cur_start - string_buffer.start;
+    if (token_type == TOKEN_ID) {
+        token.str_value.length = string_buffer.cur_start - string_buffer.start - 1;
+    } else {
+        token.str_value.length = string_buffer.cur_start - string_buffer.start;
+    }
 }
 
 static bool is_alpha(char symbol) {

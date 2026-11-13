@@ -38,5 +38,9 @@ void nt_free();
 void nt_new(StrSlice name, NtEntryType entry_type, uint16_t decl_line, uint16_t decl_col);
 NtHeader* nt_find(StrSlice name);
 void nt_check_redecl(StrSlice name, int line, int col);
+void* nt_get_body(NtHeader* header);
+void* nt_alloc(size_t size);
+
+#define NT_ALLOC(typename) ((typename*)nt_alloc(sizeof(typename)))
 
 #endif

@@ -8,6 +8,7 @@
 
 #include "exptree.h"
 #include "bytecode.h"
+#include "nametable.h"
 
 #define BUFFER_SIZE (1024)
 
@@ -32,7 +33,7 @@ int main() {
     //printf("BcStrit size is: %zu\n", sizeof(BcStrlit));
     //printf("len offset is %d, (%d from end)\n", offsetof(BcStrlit, length), sizeof(BcStrlit) - offsetof(BcStrlit, length));
     //printf("asdas %d", _BC_STRLIT_PADDING);
-    open_file("exprtest.bas");
+    open_file("parsetest.bas");
     /*
         open_file("sample.bas");
         next_token(buffer, 256);
@@ -44,6 +45,7 @@ int main() {
     */
     mem_init(buffer, buffer + BUFFER_SIZE);
     bc_init();
+    nt_init();
     parse();
     /*next_token();
     while (token.token_type != TOKEN_EOF)

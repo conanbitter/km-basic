@@ -21,12 +21,12 @@ void* expt_alloc(size_t size, ExptNodeType node_type) {
 
 uint8_t expt_addr(void* from, void* to) {
     uintptr_t addr = (uintptr_t)from - (uintptr_t)to;
-    /*if (addr > 255) {
+    if (addr > 255) {
         printf("[%d:%d] ERROR: expression is to complex",
             token.line,
             token.col
         );
-    }*/
+    }
     return (uint8_t)addr;
 }
 
@@ -217,7 +217,7 @@ void exptr_debug_print(void* root) {
         case EXPT_TYPE_ExptLoad:
         {
             ExptLoad* node = (ExptLoad*)cur;
-            printf("load      %s\n", type2str(node->datatype));
+            printf("load      %s [%p]\n", type2str(node->datatype), node->addr);
             cur += sizeof(ExptLoad);
         }
         break;

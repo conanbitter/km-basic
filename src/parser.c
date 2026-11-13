@@ -4,6 +4,7 @@
 #include "parser.h"
 #include "memblock.h"
 #include "bytecode.h"
+#include "nametable.h"
 
 #include <stdbool.h>
 #include <stdalign.h>
@@ -35,8 +36,9 @@ static void unexpected() {
     exit(1);
 }
 
-static DataType get_type_by_name(char* name, size_t name_len) {
-    switch (*(name + name_len - 1))
+static DataType get_type_by_name(StrSlice name) {
+    char suffix = *(name.addr + name.length - 1);
+    switch (*(name.addr + name.length - 1))
     {
     case '#': return TYPE_FLOAT;
     case '$': return TYPE_STRING;
@@ -257,20 +259,20 @@ static ExprResult expr13() {
     }
 
     case TOKEN_ID: {
-        NameHeader* id = name_find(token.length);
+        NtHeader* id = nt_find(token.str_value);
         if (id == NULL) {
             printf("[%d:%d] ERROR: identifier '%.*s' not found\n",
                 token.line,
                 token.col,
-                token.length,
-                mem_temp);
+                token.str_value.length,
+                token.str_value.addr);
             exit(1);
         }
 
         switch (id->entry_type)
         {
         case NAME_ENTRY_CONST: {
-            ConstBody* body = name_get_body(id);
+            NtConstBody* body = nt_get_body(id);
             result.data_type = body->value_type;
             result.is_const = true;
             switch (body->value_type)
@@ -288,7 +290,7 @@ static ExprResult expr13() {
         }
         case NAME_ENTRY_VAR:
         case NAME_ENTRY_VAR_LOCAL: {
-            VarBody* body = name_get_body(id);
+            NtVarBody* body = nt_get_body(id);
 
             ExptLoad* node = EXPT_NODE(ExptLoad);
             node->datatype = body->value_type;
@@ -772,6 +774,7 @@ static void expr_typed(DataType target_type, Token* stmt) {
     }
 
     void* root = as_node(res);
+    //exptr_debug_print(root);
     expt_codegen(root);
     expt_finish();
 }
@@ -797,11 +800,11 @@ static void stmt_const() {
     expect(TOKEN_KW_CONST);
 
     if (token.token_type != TOKEN_ID) unexpected();
-    name_check_redecl(token.length, stmt_line, stmt_col);
-    DataType value_type = get_type_by_name(mem_temp, token.length);
-    name_emplace(token.length, NAME_ENTRY_CONST, stmt_line, stmt_col);
+    nt_check_redecl(token.str_value, stmt_line, stmt_col);
+    DataType value_type = get_type_by_name(token.str_value);
+    nt_new(token.str_value, NAME_ENTRY_CONST, stmt_line, stmt_col);
 
-    ConstBody* body = NAME_ALLOC(ConstBody);
+    NtConstBody* body = NT_ALLOC(NtConstBody);
     body->value_type = value_type;
 
     expect(TOKEN_ID);
@@ -814,14 +817,15 @@ static void stmt_const() {
         printf("[%d:%d] ERROR: Expression is not constant\n", stmt_line, stmt_col);
         exit(1);
     }
-    if (value.data_type != body->value_type) {
+    type_cast(&value, value_type);
+    /*if (value.data_type != body->value_type) {
         printf("[%d:%d] ERROR: Type mismatch. Constant have type %s, but expression have type %s\n",
             stmt_line,
             stmt_col,
             type2str(body->value_type),
             type2str(value.data_type));
         exit(1);
-    }
+    }*/
     switch (value.data_type)
     {
     case TYPE_INT:
@@ -834,19 +838,19 @@ static void stmt_const() {
     }
 }
 
-static void stmt_assign(NameHeader* name) {
-    VarBody* body;
+static void stmt_assign(NtHeader* header, StrSlice name) {
+    NtVarBody* body;
     int stmt_line = token.line;
     int stmt_col = token.col;
 
-    if (name == NULL) {
-        DataType value_type = get_type_by_name(mem_temp, token.length);
-        name_emplace(token.length, NAME_ENTRY_VAR, stmt_line, stmt_col);
-        body = NAME_ALLOC(VarBody);
+    if (header == NULL) {
+        DataType value_type = get_type_by_name(name);
+        nt_new(name, NAME_ENTRY_VAR, stmt_line, stmt_col);
+        body = NT_ALLOC(NtVarBody);
         body->value_type = value_type;
         body->offset = frame_request_global(1);
     } else {
-        body = (VarBody*)name_get_body(name);
+        body = (NtVarBody*)nt_get_body(header);
     }
 
     expect(TOKEN_ID);
@@ -864,6 +868,10 @@ static void stmt_assign(NameHeader* name) {
     case TYPE_FLOAT:
         bc_emit(BC_OPCODE_FSTORE);
         break;
+
+    case TYPE_STRING:
+        bc_emit(BC_OPCODE_ASTORE);
+        break;
     }
     bc_arg_addr((void*)body->offset);
 }
@@ -872,9 +880,9 @@ static bool stmt() {
     switch (token.token_type)
     {
     case TOKEN_ID: {
-        NameHeader* name = name_find(token.length);
-        if (name == NULL || name->entry_type == NAME_ENTRY_VAR || name->entry_type == NAME_ENTRY_VAR_LOCAL) {
-            stmt_assign(name);
+        NtHeader* header = nt_find(token.str_value);
+        if (header == NULL || header->entry_type == NAME_ENTRY_VAR || header->entry_type == NAME_ENTRY_VAR_LOCAL) {
+            stmt_assign(header, token.str_value);
             return true;
         }
     } break;
@@ -907,8 +915,8 @@ static void block_main() {
 
 void parse() {
     next_token();
-    //block_main();
-    expr();
+    block_main();
+    //expr();
     //bc_emit(BC_OPCODE_IADD);
     bc_debug_print();
 }

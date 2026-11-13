@@ -19,7 +19,7 @@ void nt_new(StrSlice name, NtEntryType entry_type, uint16_t decl_line, uint16_t 
     char* name_dest = mem_alloc_left(&nt_seg, name.length);
     mem_align_left(&nt_seg);
     if (name_dest != name.addr) {
-        printf("Name \"%.*s\" is not emplaced.", name.length, name.addr);
+        printf("Name \"%.*s\" is not emplaced.\n", name.length, name.addr);
         memmove(name_dest, name.addr, name.length);
     }
 
@@ -56,4 +56,12 @@ void nt_check_redecl(StrSlice name, int line, int col) {
             found->decl_line);
         exit(1);
     }
+}
+
+void* nt_get_body(NtHeader* header) {
+    return (char*)(header + 1) + header->text_len + header->padding;
+}
+
+void* nt_alloc(size_t size) {
+    return mem_alloc_left(&nt_seg, size);
 }
