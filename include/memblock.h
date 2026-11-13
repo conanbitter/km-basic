@@ -70,7 +70,7 @@ void mem_align_left(MemSegment* range);
 void* mem_align_right(MemSegment* range);
 void mem_add_left(MemSegment* segment, char symbol);
 
-#define MEM_ALLOC_LEFT(typename) ((typename*)mem_alloc_left(sizeof(typename)))
-#define MEM_ALLOC_RIGHT(typename) ((typename*)mem_alloc_right(sizeof(typename)))
+#define MEM_ALLOC_LEFT(segment, typename) ((typename*)mem_alloc_left(segment, sizeof(typename)))
+#define MEM_ALLOC_RIGHT(segment, typename) ((typename*)mem_alloc_right(segment, sizeof(typename)))
 
 #endif

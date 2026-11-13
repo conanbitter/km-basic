@@ -15,6 +15,7 @@ set(INCLUDE_FILES
     memblock.h
     exptree.h
     bytecode.h
+    nametable.h
 )
 
 set(SRC_FILES
@@ -26,6 +27,7 @@ set(SRC_FILES
     memblock.c
     exptree.c
     bytecode.c
+    nametable.c
 )
 
 list(TRANSFORM INCLUDE_FILES PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/include/)
