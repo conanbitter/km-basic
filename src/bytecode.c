@@ -149,7 +149,8 @@ char* bc_emit_strlit(StrSlice str) {
     bc_emit(BC_OPCODE_STRLIT);
     BC_APPEND(uint16_t, 0);
     uint16_t* total_length = (uint16_t*)bc_seg.cur_end;
-    char* dest = bc_seg.cur_end = (char*)ALIGN_DOWN((uintptr_t)bc_seg.cur_end - str.length);
+    mem_alloc_right(&bc_seg, str.length);
+    char* dest = (char*)mem_align_right(&bc_seg);
     BcStrlit* head = (BcStrlit*)mem_alloc_right(&bc_seg, sizeof(BcStrlit));
     memmove(dest, str.addr, str.length);
     head->length = str.length;
@@ -210,7 +211,7 @@ void bc_debug_print() {
             cur -= total_length;
             BcStrlit* head = (BcStrlit*)(cur);
             char* str = cur + sizeof(BcStrlit);
-            printf(" \"%.*s\" (hash: %04X)", head->length, str, head->hash);
+            printf(" \"%.*s\" (hash: %04X) %d %d", head->length, str, head->hash, total_length, head->length);
         }
 
         printf("\n");

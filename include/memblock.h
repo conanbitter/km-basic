@@ -66,6 +66,8 @@ MemSegment mem_request();
 void mem_free(MemSegment* segment);
 void* mem_alloc_left(MemSegment* segment, size_t size);
 void* mem_alloc_right(MemSegment* segment, size_t size);
+void mem_align_left(MemSegment* range);
+void* mem_align_right(MemSegment* range);
 void mem_add_left(MemSegment* segment, char symbol);
 
 #define MEM_ALLOC_LEFT(typename) ((typename*)mem_alloc_left(sizeof(typename)))
