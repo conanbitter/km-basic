@@ -2,7 +2,6 @@
 #include "lexer.h"
 #include "nametable.h"
 
-#include <stddef.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -574,7 +573,6 @@ void next_token() {
                 } else if (kw != TOKEN_ERROR) {
                     set_token(kw);
                 } else {
-                    name.length--;
                     set_token_str(TOKEN_ID, name);
                 }
             } else if (is_numeric(curchar)) {

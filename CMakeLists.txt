@@ -11,7 +11,6 @@ set(INCLUDE_FILES
     common.h
     lexer.h
     parser.h
-    tree.h
     memblock.h
     exptree.h
     bytecode.h
@@ -23,7 +22,6 @@ set(SRC_FILES
     main.c
     lexer.c
     parser.c
-    tree.c
     memblock.c
     exptree.c
     bytecode.c

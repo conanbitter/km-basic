@@ -7,7 +7,6 @@
 #include "nametable.h"
 
 #include <stdbool.h>
-#include <stdalign.h>
 #include <math.h>
 
 typedef struct ExprResult {
@@ -271,7 +270,7 @@ static ExprResult expr13() {
 
         switch (id->entry_type)
         {
-        case NAME_ENTRY_CONST: {
+        case NT_ENTRY_CONST: {
             NtConstBody* body = nt_get_body(id);
             result.data_type = body->value_type;
             result.is_const = true;
@@ -288,13 +287,13 @@ static ExprResult expr13() {
             next_token();
             return result;
         }
-        case NAME_ENTRY_VAR:
-        case NAME_ENTRY_VAR_LOCAL: {
+        case NT_ENTRY_VAR:
+        case NT_ENTRY_VAR_LOCAL: {
             NtVarBody* body = nt_get_body(id);
 
             ExptLoad* node = EXPT_NODE(ExptLoad);
             node->datatype = body->value_type;
-            node->local = id->entry_type == NAME_ENTRY_VAR_LOCAL;
+            node->local = id->entry_type == NT_ENTRY_VAR_LOCAL;
             node->addr = (void*)body->offset;
 
             result.data_type = body->value_type;
@@ -802,7 +801,7 @@ static void stmt_const() {
     if (token.token_type != TOKEN_ID) unexpected();
     nt_check_redecl(token.str_value, stmt_line, stmt_col);
     DataType value_type = get_type_by_name(token.str_value);
-    nt_new(token.str_value, NAME_ENTRY_CONST, stmt_line, stmt_col);
+    nt_new(token.str_value, NT_ENTRY_CONST, stmt_line, stmt_col);
 
     NtConstBody* body = NT_ALLOC(NtConstBody);
     body->value_type = value_type;
@@ -845,7 +844,7 @@ static void stmt_assign(NtHeader* header, StrSlice name) {
 
     if (header == NULL) {
         DataType value_type = get_type_by_name(name);
-        nt_new(name, NAME_ENTRY_VAR, stmt_line, stmt_col);
+        nt_new(name, NT_ENTRY_VAR, stmt_line, stmt_col);
         body = NT_ALLOC(NtVarBody);
         body->value_type = value_type;
         body->offset = frame_request_global(1);
@@ -881,7 +880,7 @@ static bool stmt() {
     {
     case TOKEN_ID: {
         NtHeader* header = nt_find(token.str_value);
-        if (header == NULL || header->entry_type == NAME_ENTRY_VAR || header->entry_type == NAME_ENTRY_VAR_LOCAL) {
+        if (header == NULL || header->entry_type == NT_ENTRY_VAR || header->entry_type == NT_ENTRY_VAR_LOCAL) {
             stmt_assign(header, token.str_value);
             return true;
         }

@@ -5,8 +5,6 @@
 #include "lexer.h"
 #include "parser.h"
 #include "memblock.h"
-
-#include "exptree.h"
 #include "bytecode.h"
 #include "nametable.h"
 
