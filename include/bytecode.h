@@ -110,6 +110,11 @@ typedef struct BcStrlit {
     uint16_t length;
 } BcStrlit;
 
+typedef struct BcLabel {
+    char* destination;
+    char** pointer;
+} BcLabel;
+
 void bc_init();
 void bc_emit(BcOpcode opcode);
 void bc_arg_int(KmInt value);
@@ -117,6 +122,10 @@ void bc_arg_float(KmFloat value);
 void bc_arg_addr(void* value);
 void bc_arg_u2(uint16_t value);
 char* bc_emit_strlit(StrSlice str);
+
+BcLabel bc_new_label();
+void bc_arg_label(BcLabel* label);
+void bc_set_label(BcLabel* label);
 
 void bc_debug_print();
 

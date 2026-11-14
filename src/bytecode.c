@@ -163,6 +163,25 @@ char* bc_emit_strlit(StrSlice str) {
     return dest;
 }
 
+BcLabel bc_new_label() {
+    BcLabel res = { .destination = NULL,.pointer = NULL };
+    return res;
+}
+
+void bc_arg_label(BcLabel* label) {
+    label->pointer = (char**)mem_alloc_right(&bc_seg, sizeof(char*));
+    if (label->destination != NULL) {
+        *label->pointer = label->destination;
+    }
+}
+
+void bc_set_label(BcLabel* label) {
+    label->destination = bc_seg.cur_end;
+    if (label->pointer != NULL) {
+        *label->pointer = label->destination;
+    }
+}
+
 void bc_debug_print() {
     uint8_t* cur = bc_seg.end;
     uint8_t* end = bc_seg.cur_end;
