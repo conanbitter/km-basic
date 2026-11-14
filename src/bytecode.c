@@ -182,7 +182,9 @@ void bc_set_label(BcLabel* label) {
     }
 }
 
-void bc_debug_print() {
+void bc_debug_print(const char* filename) {
+    FILE* fl = fopen(filename, "w");
+
     uint8_t* cur = bc_seg.end;
     uint8_t* end = bc_seg.cur_end;
 
@@ -190,30 +192,33 @@ void bc_debug_print() {
     {
         cur--;
         BcOpcode opcode = *cur;
-        printf("%p: %s", cur, opcodestr[opcode]);
+        fprintf(fl, "%p: %s", cur, opcodestr[opcode]);
 
         if (opcode == BC_OPCODE_IPUSH) {
             cur -= sizeof(KmInt);
             KmInt value = *((KmInt*)cur);
-            printf(" %" PRIkmINT, value);
+            fprintf(fl, " %" PRIkmINT, value);
         }
 
         if (opcode == BC_OPCODE_FPUSH) {
             cur -= sizeof(KmFloat);
             KmFloat value = *((KmFloat*)cur);
-            printf(" %f", value);
+            fprintf(fl, " %f", value);
         }
 
         if (opcode == BC_OPCODE_APUSH || (opcode >= BC_OPCODE_ILOAD && opcode <= BC_OPCODE_CALL)) {
             cur -= sizeof(void*);
-            void* value = *((void**)cur);
-            printf(" [%p]", value);
+            char* value = *((char**)cur);
+            if (opcode == BC_OPCODE_IFN || opcode == BC_OPCODE_IF || opcode == BC_OPCODE_JMP) {
+                value--;
+            }
+            fprintf(fl, " [%p]", value);
         }
 
         if (opcode == BC_OPCODE_SYSCALL) {
             cur -= sizeof(uint16_t);
             uint16_t value = *((uint16_t*)cur);
-            printf(" %" PRIu16, value);
+            fprintf(fl, " %" PRIu16, value);
         }
 
         if (opcode == BC_OPCODE_FRAME) {
@@ -221,7 +226,7 @@ void bc_debug_print() {
             uint16_t value1 = *((uint16_t*)cur);
             cur -= sizeof(uint16_t);
             uint16_t value2 = *((uint16_t*)cur);
-            printf(" %" PRIu16 ", %" PRIu16, value1, value2);
+            fprintf(fl, " %" PRIu16 ", %" PRIu16, value1, value2);
         }
 
         if (opcode == BC_OPCODE_STRLIT) {
@@ -230,10 +235,10 @@ void bc_debug_print() {
             cur -= total_length;
             BcStrlit* head = (BcStrlit*)(cur);
             char* str = cur + sizeof(BcStrlit);
-            printf(" \"%.*s\" (hash: %04X) %d %d", head->length, str, head->hash, total_length, head->length);
+            fprintf(fl, " \"%.*s\" (hash: %04X) %d %d", head->length, str, head->hash, total_length, head->length);
         }
 
-        printf("\n");
+        fprintf(fl, "\n");
     }
 
 }
