@@ -757,20 +757,10 @@ static DataType expr() {
     return res.data_type;
 }
 
-static void expr_typed(DataType target_type, Token* stmt) {
+static void expr_typed(DataType target_type) {
     expt_init();
     ExprResult res = expr0();
     type_cast(&res, target_type);
-
-    if (res.data_type != target_type) {
-        printf("[%d:%d] ERROR: expression type mismatch. Type is %s, must be %s.",
-            stmt->line,
-            stmt->col,
-            type2str(res.data_type),
-            type2str(target_type)
-        );
-        exit(1);
-    }
 
     void* root = as_node(res);
     //exptr_debug_print(root);
@@ -785,6 +775,8 @@ static void expr_typed(DataType target_type, Token* stmt) {
 uintptr_t frame_global;
 uintptr_t frame_local;
 bool in_function = false;
+
+static void block();
 
 uintptr_t frame_request_global(size_t size) {
     uintptr_t res = frame_global;
@@ -853,10 +845,9 @@ static void stmt_assign(NtHeader* header, StrSlice name) {
     }
 
     expect(TOKEN_ID);
-    Token center_token = token;
     expect(TOKEN_EQ);
 
-    expr_typed(body->value_type, &center_token);
+    expr_typed(body->value_type);
 
     switch (body->value_type)
     {
@@ -875,6 +866,58 @@ static void stmt_assign(NtHeader* header, StrSlice name) {
     bc_arg_addr((void*)body->offset);
 }
 
+static void stmt_if() {
+    BcLabel label_then = bc_new_label();
+    BcLabel label_else = bc_new_label();
+
+    expect(TOKEN_KW_IF);
+
+    expr_typed(TYPE_INT);
+
+    expect(TOKEN_KW_THEN);
+    expect(TOKEN_NEWLINE);
+
+    bc_emit(BC_OPCODE_IFN);
+    bc_arg_label(&label_then);
+    block();
+
+    while (token.token_type == TOKEN_KW_ELSEIF)
+    {
+        expect(TOKEN_KW_ELSEIF);
+        //bc_emit(BC_OPCODE_JMP);
+        //bc_arg_label(&label_else);
+        bc_set_label(&label_then);
+
+        expr_typed(TYPE_INT);
+
+        expect(TOKEN_KW_THEN);
+        expect(TOKEN_NEWLINE);
+
+        label_then = bc_new_label();
+
+        bc_emit(BC_OPCODE_IFN);
+        bc_arg_label(&label_then);
+        block();
+    }
+
+
+    if (token.token_type == TOKEN_KW_ELSE) {
+        expect(TOKEN_KW_ELSE);
+        expect(TOKEN_NEWLINE);
+
+        bc_emit(BC_OPCODE_JMP);
+        bc_arg_label(&label_else);
+        bc_set_label(&label_then);
+        block();
+        bc_set_label(&label_else);
+    } else {
+        bc_set_label(&label_then);
+    }
+
+    expect(TOKEN_KW_END);
+    expect(TOKEN_KW_IF);
+}
+
 static bool stmt() {
     switch (token.token_type)
     {
@@ -885,6 +928,10 @@ static bool stmt() {
             return true;
         }
     } break;
+
+    case TOKEN_KW_IF:
+        stmt_if();
+        return true;
 
     default:
         break;
@@ -910,6 +957,17 @@ static void block_main() {
     }
 }
 
+static void block() {
+    bool working = true;
+
+    while (working) {
+        working = stmt();
+        if (!working) break;
+        if (token.token_type == TOKEN_EOF) break;
+        expect(TOKEN_NEWLINE);
+    }
+}
+
 #pragma endregion
 
 void parse() {
@@ -917,5 +975,5 @@ void parse() {
     block_main();
     //expr();
     //bc_emit(BC_OPCODE_IADD);
-    bc_debug_print();
+    bc_debug_print("test.basm");
 }

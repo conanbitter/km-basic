@@ -127,6 +127,6 @@ BcLabel bc_new_label();
 void bc_arg_label(BcLabel* label);
 void bc_set_label(BcLabel* label);
 
-void bc_debug_print();
+void bc_debug_print(const char* filename);
 
 #endif
