@@ -867,8 +867,8 @@ static void stmt_assign(NtHeader* header, StrSlice name) {
 }
 
 static void stmt_if() {
-    BcLabel label_then = bc_new_label();
-    BcLabel label_else = bc_new_label();
+    BcLabel label_end = bc_new_label();
+    BcLabel label_next = bc_new_label();
 
     expect(TOKEN_KW_IF);
 
@@ -878,25 +878,25 @@ static void stmt_if() {
     expect(TOKEN_NEWLINE);
 
     bc_emit(BC_OPCODE_IFN);
-    bc_arg_label(&label_then);
+    bc_arg_label(&label_next);
     block();
 
     while (token.token_type == TOKEN_KW_ELSEIF)
     {
         expect(TOKEN_KW_ELSEIF);
-        //bc_emit(BC_OPCODE_JMP);
-        //bc_arg_label(&label_else);
-        bc_set_label(&label_then);
+        bc_emit(BC_OPCODE_JMP);
+        bc_arg_label(&label_end);
+        bc_set_label(&label_next);
 
         expr_typed(TYPE_INT);
 
         expect(TOKEN_KW_THEN);
         expect(TOKEN_NEWLINE);
 
-        label_then = bc_new_label();
+        label_next = bc_new_label();
 
         bc_emit(BC_OPCODE_IFN);
-        bc_arg_label(&label_then);
+        bc_arg_label(&label_next);
         block();
     }
 
@@ -906,13 +906,13 @@ static void stmt_if() {
         expect(TOKEN_NEWLINE);
 
         bc_emit(BC_OPCODE_JMP);
-        bc_arg_label(&label_else);
-        bc_set_label(&label_then);
+        bc_arg_label(&label_end);
+        bc_set_label(&label_next);
+        label_next = bc_new_label();
         block();
-        bc_set_label(&label_else);
-    } else {
-        bc_set_label(&label_then);
     }
+    bc_set_label(&label_end);
+    bc_set_label(&label_next);
 
     expect(TOKEN_KW_END);
     expect(TOKEN_KW_IF);

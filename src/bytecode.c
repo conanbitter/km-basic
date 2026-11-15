@@ -169,16 +169,21 @@ BcLabel bc_new_label() {
 }
 
 void bc_arg_label(BcLabel* label) {
+    char** prev = label->pointer;
     label->pointer = (char**)mem_alloc_right(&bc_seg, sizeof(char*));
     if (label->destination != NULL) {
         *label->pointer = label->destination;
+    } else {
+        *label->pointer = (char*)prev;
     }
 }
 
 void bc_set_label(BcLabel* label) {
     label->destination = bc_seg.cur_end;
-    if (label->pointer != NULL) {
+    while (label->pointer != NULL) {
+        char** prev = (char**)(*label->pointer);
         *label->pointer = label->destination;
+        label->pointer = prev;
     }
 }
 
