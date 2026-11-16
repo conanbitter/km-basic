@@ -47,7 +47,8 @@ typedef enum BcOpcode {
     BC_OPCODE_STOI,
     BC_OPCODE_FTOS,
     BC_OPCODE_STOF,
-    BC_OPCODE_ILOADP, // Other
+    BC_OPCODE_INC,    // Other
+    BC_OPCODE_ILOADP,
     BC_OPCODE_FLOADP,
     BC_OPCODE_ALOADP,
     BC_OPCODE_ISTOREP,
@@ -55,9 +56,12 @@ typedef enum BcOpcode {
     BC_OPCODE_ASTOREP,
     BC_OPCODE_STRCOPY,
     BC_OPCODE_DUP,
+    BC_OPCODE_OVER,
     BC_OPCODE_DROP,
+    BC_OPCODE_DROP2,
     BC_OPCODE_RET,
     BC_OPCODE_RETRES,
+    BC_OPCODE_FORCHECK,
     // size: 3 bytes
     BC_OPCODE_SYSCALL,
     // size: 5 bytes
