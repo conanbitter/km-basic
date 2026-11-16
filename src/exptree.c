@@ -139,10 +139,10 @@ static const char* binopstr[] = {
     "I<=",
     "F<=",
     "AND",
-    "&& ",
     "OR ",
-    "|| ",
     "XOR",
+    "&& ",
+    "|| ",
 };
 
 static const char* unopstr[] = {
