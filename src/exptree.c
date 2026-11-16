@@ -41,9 +41,19 @@ void expt_codegen(void* root) {
         void* left = (char*)root - node->left;
         void* right = (char*)root - node->right;
         expt_codegen(left);
-        expt_codegen(right);
 
-        bc_emit(node->opcode + BC_OPCODE_IPOW);
+        if (node->opcode == EXPT_BINOP_ANDSC || node->opcode == EXPT_BINOP_ORSC) {
+            BcLabel label = bc_new_label();
+            bc_emit(BC_OPCODE_DUP);
+            bc_emit(node->opcode == EXPT_BINOP_ANDSC ? BC_OPCODE_IFN : BC_OPCODE_IF);
+            bc_arg_label(&label);
+            bc_emit(BC_OPCODE_DROP);
+            expt_codegen(right);
+            bc_set_label(&label);
+        } else {
+            expt_codegen(right);
+            bc_emit(node->opcode + BC_OPCODE_IPOW);
+        }
     }
     break;
 
